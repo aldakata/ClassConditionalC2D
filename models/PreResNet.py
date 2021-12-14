@@ -173,8 +173,9 @@ class PreActBottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10, drop=False):
+    def __init__(self, block, num_blocks, num_classes=10, drop=False, usedropout = False):
         super(ResNet, self).__init__()
+        self.usedropout = usedropout
         self.drop = drop
         self.in_planes = 64
 
@@ -184,6 +185,8 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2, drop=drop, block_size=5)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2, drop=drop, block_size=3)
+        if usedropout:
+            self.dropout = nn.Dropout(0.5)
         self.linear = nn.Linear(512 * block.expansion, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride, drop=False, block_size=2):
@@ -221,6 +224,8 @@ class ResNet(nn.Module):
 
     def forward(self, x, lin=0, lout=5):
         out = self.features(x, lin, lout)
+        if self.usedropout:
+            out = self.dropout(out)
         out = self.classifier(out, lin, lout)
         return out
 

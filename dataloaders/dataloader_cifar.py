@@ -177,9 +177,9 @@ class cifar_dataset(Dataset):
                     # pc,nc = (clean==1).sum(), (clean==0).sum()
                     log.write('Number of labeled samples:%d\t'
                               'AUC:%.3f\tTP:%.3f\tFP:%.3f\tFN:%.3f\t'
-                              'Noise in labeled dataset:%.3f\n' % (
-                                  pred.sum(), auc, tp, fp, fn, fp / (tp + fp)))
-
+                              'Noise in labeled dataset:%.3f\t' 
+                              'Accuracy of division:%.3f\n' % (
+                                  pred.sum(), auc, tp, fp, fn, fp / (tp + fp), (1-(fp+fn)/50000)))
                     log.flush()
 
                 elif self.mode == "unlabeled":
@@ -338,5 +338,16 @@ class cifar_dataloader():
                 dataset=eval_dataset,
                 batch_size=self.batch_size,
                 shuffle=False,
+                num_workers=self.num_workers)
+            return eval_loader
+
+        elif mode == 'BN_eval_train':
+            eval_dataset = cifar_dataset(dataset=self.dataset, noise_mode=self.noise_mode, r=self.r,
+                                         root_dir=self.root_dir, transform=self.transform_test, mode='all',
+                                         noise_file=self.noise_file)
+            eval_loader = DataLoader(
+                dataset=eval_dataset,
+                batch_size=self.batch_size,
+                shuffle=True,
                 num_workers=self.num_workers)
             return eval_loader

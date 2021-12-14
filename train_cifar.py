@@ -7,6 +7,12 @@ from sklearn.mixture import GaussianMixture
 
 from train import warmup, train
 
+<<<<<<< HEAD
+from processing_utils import save_net_optimizer_to_ckpt
+from uncertainty_utils import log_loss, gmm_pred, gmm_pred_class_dependant
+
+=======
+>>>>>>> parent of b3b3e49... Load and save implemented
 
 def save_losses(input_loss, exp):
     name = './stats/cifar100/losses{}.pcl'
@@ -23,6 +29,8 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     model.eval()
     losses = torch.zeros(50000)
     losses_clean = torch.zeros(50000)
+    targets_all = torch.zeros(50000, device=device)
+
     with torch.no_grad():
         for batch_idx, (inputs, _, targets, index, targets_clean) in enumerate(eval_loader):
             inputs, targets, targets_clean = inputs.to(device), targets.to(device), targets_clean.to(device)
@@ -32,6 +40,8 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
             for b in range(inputs.size(0)):
                 losses[index[b]] = loss[b]
                 losses_clean[index[b]] = clean_loss[b]
+                targets_all[index[b]] = targets[b]
+                
     losses = (losses - losses.min()) / (losses.max() - losses.min())
     all_loss.append(losses)
 
@@ -50,13 +60,15 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     gmm.fit(input_loss)
 
     clean_idx, noisy_idx = gmm.means_.argmin(), gmm.means_.argmax()
-    stats_log.write('Epoch {} (net {}): GMM results: {} with weight {}\t'
-                    '{} with weight {}\n'.format(epoch, net, gmm.means_[clean_idx], gmm.weights_[clean_idx],
-                                                 gmm.means_[noisy_idx], gmm.weights_[noisy_idx]))
+    stats_log.write('Epoch {} (net {}): GMM results: {} with weight {} with covariance: {}\t {} with weight {} with covariance: {}\n'
+                    ''.format(epoch, net, gmm.means_[clean_idx], gmm.weights_[clean_idx], gmm.covariances_[clean_idx], gmm.means_[noisy_idx], gmm.weights_[noisy_idx], gmm.covariances_[noisy_idx]))
     stats_log.flush()
 
     prob = gmm.predict_proba(input_loss)
     prob = prob[:, clean_idx]
+
+    gmm, clean_idx, noisy_idx, pred, prob = gmm_pred_class_dependant(input_loss, targets_all)
+
     return prob, all_loss, losses_clean
 
 
@@ -83,8 +95,13 @@ def run_test(epoch, net1, net2, test_loader, device, test_log):
 
 def run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, p_threshold,
                    warm_up, num_epochs, all_loss, batch_size, num_class, device, lambda_u, T, alpha, noise_mode,
+<<<<<<< HEAD
+                   dataset, r, conf_penalty, stats_log, loss_log, test_log, ckpt_path, resume_epoch):
+    for epoch in range(resume_epoch, num_epochs + 1):
+=======
                    dataset, r, conf_penalty, stats_log, loss_log, test_log):
     for epoch in range(num_epochs + 1):
+>>>>>>> parent of b3b3e49... Load and save implemented
         test_loader = loader.run('test')
         eval_loader = loader.run('eval_train')
 
@@ -136,6 +153,13 @@ def run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion
             train(epoch, net2, net1, criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u,
                   batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs)  # train net2
 
+<<<<<<< HEAD
+        if not epoch%5:
+            save_net_optimizer_to_ckpt(net1, optimizer1, f'{ckpt_path}/{epoch}_1.pt')
+            save_net_optimizer_to_ckpt(net2, optimizer2, f'{ckpt_path}/{epoch}_2.pt')
+
+=======
+>>>>>>> parent of b3b3e49... Load and save implemented
         run_test(epoch, net1, net2, test_loader, device, test_log)
 
         sched1.step()

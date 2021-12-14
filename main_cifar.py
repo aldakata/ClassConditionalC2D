@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import argparse
 import os
+import tables
 import random
 
 import numpy as np
@@ -14,7 +15,13 @@ from models import bit_models
 from models.PreResNet import *
 from models.resnet import SupCEResNet
 from train_cifar import run_train_loop
+from train_cifar_uncertainty import run_train_loop_mcdo
+from train_cifar_uncertainty_MCBN import run_train_loop_mcbn
 
+<<<<<<< HEAD
+from processing_utils import load_net_optimizer_from_ckpt_to_device, get_epoch_from_checkpoint
+=======
+>>>>>>> parent of b3b3e49... Load and save implemented
 
 def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch CIFAR Training')
@@ -42,6 +49,13 @@ def parse_args():
     parser.add_argument('--not-rampup', dest='not_rampup', action='store_true', help='not rumpup')
     parser.add_argument('--supcon', dest='supcon', action='store_true', help='use supcon')
     parser.add_argument('--use-aa', dest='use_aa', action='store_true', help='use supcon')
+    parser.add_argument('--resume', default=None, type=str, help='None if fresh start, base checkpoint path of the NN otherwise, we will asume that NN1 path ends with _1 and NN2 path ends with _2.')
+    parser.add_argument('--dropout', default=False, type=bool, help='To add dropout layer before classifier in the ResNet18.')
+    parser.add_argument('--mcdo', default=False, type=bool, help='To do multiple forward passes with the dropout layer enabled at codivide time.')
+    parser.add_argument('--mcbn', default=False, type=bool, help='To do multiple forward passes with the BatchNorm layer enabled at codivide time.')
+
+    parser.add_argument('--lambda_c', default=0, type=float, help='weight for class variance in Lx')
+
     args = parser.parse_args()
 
     if torch.cuda.is_available():
@@ -70,6 +84,14 @@ class SemiLoss(object):
 
         return Lx, Lu, linear_rampup(epoch, warm_up, lambda_u)
 
+class SemiLoss_uncertainty(object):
+    def __call__(self, outputs_x, targets_x, uncertainty_weights_x, outputs_u, targets_u, epoch, warm_up, lambda_u):
+        probs_u = torch.softmax(outputs_u, dim=1)
+
+        Lx = -torch.mean(uncertainty_weights_x *torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1))
+        Lu = torch.mean((probs_u - targets_u) ** 2)
+
+        return Lx, Lu, linear_rampup(epoch, warm_up, lambda_u)
 
 class NegEntropy(object):
     def __call__(self, outputs):
@@ -77,9 +99,9 @@ class NegEntropy(object):
         return torch.mean(torch.sum(probs.log() * probs, dim=1))
 
 
-def create_model_reg(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0):
+def create_model_reg(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0, usedropout=False):
     if net == 'resnet18':
-        model = ResNet18(num_classes=num_classes, drop=drop)
+        model = ResNet18(num_classes=num_classes, drop=drop, usedropout=usedropout)
         model = model.to(device)
         return model
     else:
@@ -88,7 +110,7 @@ def create_model_reg(net='resnet18', dataset='cifar100', num_classes=100, device
         return model
 
 
-def create_model_selfsup(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0):
+def create_model_selfsup(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0, usedropout=False):
     chekpoint = torch.load('pretrained/ckpt_{}_{}.pth'.format(dataset, net))
     sd = {}
     for ke in chekpoint['model']:
@@ -100,7 +122,7 @@ def create_model_selfsup(net='resnet18', dataset='cifar100', num_classes=100, de
     return model
 
 
-def create_model_bit(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0):
+def create_model_bit(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0, mcdo=False):
     if net == 'resnet50':
         model = bit_models.KNOWN_MODELS['BiT-S-R50x1'](head_size=num_classes, zero_head=True)
         model.load_from(np.load("pretrained/BiT-S-R50x1.npz"))
@@ -116,12 +138,44 @@ def create_model_bit(net='resnet18', dataset='cifar100', num_classes=100, device
 
 def main():
     args = parse_args()
+<<<<<<< HEAD
+    log_dir = f'./checkpoint/{args.experiment_name}'
+    h5_log_dir = f'{log_dir}/h5'
+    os.makedirs(f'{log_dir}/models', exist_ok=True)
+    os.makedirs(h5_log_dir, exist_ok=True)
+    log_name = f'{log_dir}/{args.dataset}_{args.r}_{args.lambda_u}_{args.noise_mode}'
+    stats_log = open(log_name + '_stats.txt', 'a')
+    test_log = open(log_name + '_acc.txt', 'a')
+    gmm_log = open(log_name + '_gmm_acc.txt', 'a')
+    loss_log1 = open(log_name + '_loss1.txt', 'a')
+    loss_log2 = open(log_name + '_loss2.txt', 'a')
+
+    sample_entropy_log =  h5_log_dir + '/sample_entropy.h5'
+    # if not os.path.isfile(sample_entropy_log):
+    #     with tables.open_file(sample_entropy_log, mode='a') as f:
+    #         atom = tables.Float64Atom()
+    #         array_c = f.create_earray(f.root, 'data', atom, (0, 50000))
+
+    sample_pred_log = h5_log_dir + '/sample_pred.h5'
+    # if not os.path.isfile(sample_pred_log):
+    #     with tables.open_file(sample_pred_log, mode='a') as f:
+    #         atom = tables.Float64Atom()
+    #         array_c = f.create_earray(f.root, 'data', atom, (0, 50000))
+
+    subnet_loss_log =  h5_log_dir + '/losses_{}.h5'
+    # for i in range(22):
+    #     if not os.path.isfile(subnet_loss_log.format(i)):
+    #         with tables.open_file(subnet_loss_log.format(i), mode='a') as f:
+    #             atom = tables.Float64Atom()
+    #             array_c = f.create_earray(f.root, 'data', atom, (0, 50000))
+=======
     os.makedirs('./checkpoint', exist_ok=True)
     log_name = './checkpoint/%s_%s_%.2f_%.1f_%s' % (
         args.experiment_name, args.dataset, args.r, args.lambda_u, args.noise_mode)
     stats_log = open(log_name + '_stats.txt', 'w')
     test_log = open(log_name + '_acc.txt', 'w')
     loss_log = open(log_name + '_loss.txt', 'w')
+>>>>>>> parent of b3b3e49... Load and save implemented
 
     # define warmup
     if args.dataset == 'cifar10':
@@ -153,6 +207,26 @@ def main():
         create_model = create_model_selfsup
     else:
         raise ValueError()
+<<<<<<< HEAD
+
+    net1 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout)
+    net2 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout)
+    cudnn.benchmark = False  # True
+
+    if args.mcdo or args.mcbn:
+        criterion = SemiLoss_uncertainty()
+    else:
+        criterion = SemiLoss()
+
+    if args.resume is None:
+        optimizer1 = optim.SGD(net1.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+        optimizer2 = optim.SGD(net2.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+        resume_epoch = 0
+    else:
+        net1, optimizer1 = load_net_optimizer_from_ckpt_to_device(net1, args, f'{args.resume}_1.pt', args.device)
+        net2, optimizer2 = load_net_optimizer_from_ckpt_to_device(net2, args, f'{args.resume}_2.pt', args.device)
+        resume_epoch = get_epoch_from_checkpoint(args.resume)
+=======
     net1 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop)
     net2 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop)
     cudnn.benchmark = False  # True
@@ -160,6 +234,7 @@ def main():
     criterion = SemiLoss()
     optimizer1 = optim.SGD(net1.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
     optimizer2 = optim.SGD(net2.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+>>>>>>> parent of b3b3e49... Load and save implemented
 
     sched1 = torch.optim.lr_scheduler.StepLR(optimizer1, 150, gamma=0.1)
     sched2 = torch.optim.lr_scheduler.StepLR(optimizer2, 150, gamma=0.1)
@@ -171,10 +246,25 @@ def main():
     else:
         conf_penalty = None
     all_loss = [[], []]  # save the history of losses from two networks
-    run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
+    print(f'MCDO? : {args.mcdo}\tMCBN? : {args.mcbn}')
+    if args.mcdo:
+        run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
+                   warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_c, args.T,
+                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, sample_entropy_log, sample_pred_log, gmm_log, subnet_loss_log, f'{log_dir}/models', resume_epoch)
+    elif args.mcbn:
+        run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
+                    warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_c, args.T,
+                    args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, sample_entropy_log, sample_pred_log, gmm_log, subnet_loss_log, f'{log_dir}/models', resume_epoch)
+    else:
+        print('Vanilla')
+        run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
                    warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.T,
+<<<<<<< HEAD
+                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log2, test_log, f'{log_dir}/models', resume_epoch)
+=======
                    args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log, test_log)
 
+>>>>>>> parent of b3b3e49... Load and save implemented
 
 if __name__ == '__main__':
     main()
