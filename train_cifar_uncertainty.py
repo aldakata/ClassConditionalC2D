@@ -191,8 +191,8 @@ def run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
 
         if not epoch%5:
             print(f'[ SAVING MODELS] EPOCH: {epoch} PATH: {ckpt_path}')
-            save_net_optimizer_to_ckpt(net1, optimizer1, '/final_checkpoints/final_checkpoint_1.pt')
-            save_net_optimizer_to_ckpt(net2, optimizer2, '/final_checkpoints/final_checkpoint_2.pt')
+            save_net_optimizer_to_ckpt(net1, optimizer1, f'{ckpt_path}/1.pt')
+            save_net_optimizer_to_ckpt(net2, optimizer2, f'{ckpt_path}/2.pt')
         
         run_test(epoch, net1, net2, test_loader, device, test_log)
 
