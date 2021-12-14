@@ -101,29 +101,29 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     fp = np.logical_and(fp_fn, ~clean_indices)
     fn = np.logical_and(fp_fn, clean_indices)
 
-    stats_log.write('Epoch {}: (net {}): CLEAN GMM results: {} with weight: {} with covariance: {}\t NOISY GMM results: {} with weight: {} with covariance: {}\t'
-                    'clean_entropy mean: {} | std: {} noisy_entropy mean: {} | std :{}\t labeled_entropy mean: {} | std: {} unlabeled_entropy mean : {} | std: {}\t'
-                    'TP_TN  mean: {} std{}\t FP_FN mean: {} std: {}\tclass_variance: {}\n'
-                    ''.format(epoch, net, gmm.means_[clean_idx], gmm.weights_[clean_idx], gmm.covariances_[clean_idx],
-                                                 gmm.means_[noisy_idx], gmm.weights_[noisy_idx], gmm.covariances_[noisy_idx], 
-                                                 sample_entropy[clean_indices].mean().item(), sample_entropy[clean_indices].std().item(),
-                                                 sample_entropy[~clean_indices].mean().item(), sample_entropy[~clean_indices].std().item(), 
-                                                 sample_entropy[pred].mean().item(), sample_entropy[pred].std().item(),
-                                                 sample_entropy[~pred].mean().item(), sample_entropy[~pred].std().item(),
-                                                 sample_entropy[tp_tn].mean().item(), sample_entropy[tp_tn].std().item(),
-                                                 sample_entropy[fp_fn].mean().item(), sample_entropy[fp_fn].std().item(),
-                                                 class_variance.tolist()))
-    stats_log.flush()
+    # stats_log.write('Epoch {}: (net {}): CLEAN GMM results: {} with weight: {} with covariance: {}\t NOISY GMM results: {} with weight: {} with covariance: {}\t'
+    #                 'clean_entropy mean: {} | std: {} noisy_entropy mean: {} | std :{}\t labeled_entropy mean: {} | std: {} unlabeled_entropy mean : {} | std: {}\t'
+    #                 'TP_TN  mean: {} std{}\t FP_FN mean: {} std: {}\tclass_variance: {}\n'
+    #                 ''.format(epoch, net, gmm.means_[clean_idx], gmm.weights_[clean_idx], gmm.covariances_[clean_idx],
+    #                                              gmm.means_[noisy_idx], gmm.weights_[noisy_idx], gmm.covariances_[noisy_idx], 
+    #                                              sample_entropy[clean_indices].mean().item(), sample_entropy[clean_indices].std().item(),
+    #                                              sample_entropy[~clean_indices].mean().item(), sample_entropy[~clean_indices].std().item(), 
+    #                                              sample_entropy[pred].mean().item(), sample_entropy[pred].std().item(),
+    #                                              sample_entropy[~pred].mean().item(), sample_entropy[~pred].std().item(),
+    #                                              sample_entropy[tp_tn].mean().item(), sample_entropy[tp_tn].std().item(),
+    #                                              sample_entropy[fp_fn].mean().item(), sample_entropy[fp_fn].std().item(),
+    #                                              class_variance.tolist()))
+    # stats_log.flush()
 
-    loss_log.write('{},{},{},{},{},{},{},{},{}\n'.format(epoch, losses_clean[pred].mean(dim=0).numpy(), losses_clean[pred].std(dim=0).numpy(),
-                                                        losses_clean[~pred].mean(dim=0).numpy(), losses_clean[~pred].std(dim=0).numpy(),
-                                                        losses[clean_indices].mean(dim=0).numpy(), losses[clean_indices].std(dim=0).numpy(),
-                                                        losses[~clean_indices].mean(dim=0).numpy(), losses[~clean_indices].std(dim=0).numpy()))
-    loss_log.flush()
+    # loss_log.write('{},{},{},{},{},{},{},{},{}\n'.format(epoch, losses_clean[pred].mean(dim=0).numpy(), losses_clean[pred].std(dim=0).numpy(),
+    #                                                     losses_clean[~pred].mean(dim=0).numpy(), losses_clean[~pred].std(dim=0).numpy(),
+    #                                                     losses[clean_indices].mean(dim=0).numpy(), losses[clean_indices].std(dim=0).numpy(),
+    #                                                     losses[~clean_indices].mean(dim=0).numpy(), losses[~clean_indices].std(dim=0).numpy()))
+    # loss_log.flush()
     
-    mcdo_gmm_accuracies = [(gmm_pred(loss, True)[-2] == clean_indices).sum()/50000 for loss in torch.transpose(losses, 0, 1)]
-    gmm_log.write(f'{epoch}:{mcdo_gmm_accuracies}\n')
-    gmm_log.flush()
+    # mcdo_gmm_accuracies = [(gmm_pred(loss, True)[-2] == clean_indices).sum()/50000 for loss in torch.transpose(losses, 0, 1)]
+    # gmm_log.write(f'{epoch}:{mcdo_gmm_accuracies}\n')
+    # gmm_log.flush()
 
     return prob, all_loss, losses_clean, class_variance
 
@@ -163,15 +163,6 @@ def run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
             warmup(epoch, net2, optimizer2, warmup_trainloader, CEloss, conf_penalty, device, dataset, r, num_epochs,
                    noise_mode)
 
-            # prob1, all_loss[0], losses_clean1, class_variance1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r,
-            #                                                 stats_log, loss_log1)
-            # prob2, all_loss[1], losses_clean2, class_variance2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r,
-            #                                                stats_log)
-
-            # p_thr2 = np.clip(p_threshold, prob2.min() + 1e-5, prob2.max() - 1e-5)
-            # pred2 = prob2 > p_thr2
-
-            # loader.run('train', pred2, prob2)  # count metrics
         else:
             print('Train Net1')
             begin_time = datetime.datetime.now()
@@ -198,13 +189,12 @@ def run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
             train(epoch, net2, net1, criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_c,
                   batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance1)  # train net2
 
-        if not epoch%2 or True:
+        if not epoch%5:
             print(f'[ SAVING MODELS] EPOCH: {epoch} PATH: {ckpt_path}')
-            save_net_optimizer_to_ckpt(net1, optimizer1, f'{ckpt_path}/{epoch}_1.pt')
-            save_net_optimizer_to_ckpt(net2, optimizer2, f'{ckpt_path}/{epoch}_2.pt')
+            save_net_optimizer_to_ckpt(net1, optimizer1, '/final_checkpoints/final_checkpoint_1.pt')
+            save_net_optimizer_to_ckpt(net2, optimizer2, '/final_checkpoints/final_checkpoint_2.pt')
         
         run_test(epoch, net1, net2, test_loader, device, test_log)
 
         sched1.step()
         sched2.step()
-    torch.save(net1.state_dict(), './final_checkpoints/final_checkpoint.pth.tar')

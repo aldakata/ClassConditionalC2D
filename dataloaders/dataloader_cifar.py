@@ -175,12 +175,12 @@ class cifar_dataset(Dataset):
                                  (np.not_equal(pred, clean) * (clean == 0)).sum(), \
                                  (np.not_equal(pred, clean) * (clean == 1)).sum()
                     # pc,nc = (clean==1).sum(), (clean==0).sum()
-                    log.write('Number of labeled samples:%d\t'
-                              'AUC:%.3f\tTP:%.3f\tFP:%.3f\tFN:%.3f\t'
-                              'Noise in labeled dataset:%.3f\t' 
-                              'Accuracy of division:%.3f\n' % (
-                                  pred.sum(), auc, tp, fp, fn, fp / (tp + fp), (1-(fp+fn)/50000)))
-                    log.flush()
+                    # log.write('Number of labeled samples:%d\t'
+                    #           'AUC:%.3f\tTP:%.3f\tFP:%.3f\tFN:%.3f\t'
+                    #           'Noise in labeled dataset:%.3f\t' 
+                    #           'Accuracy of division:%.3f\n' % (
+                    #               pred.sum(), auc, tp, fp, fn, fp / (tp + fp), (1-(fp+fn)/50000)))
+                    # log.flush()
 
                 elif self.mode == "unlabeled":
                     pred_idx = (1 - pred).nonzero()[0]
