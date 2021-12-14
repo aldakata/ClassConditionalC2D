@@ -18,10 +18,7 @@ from train_cifar import run_train_loop
 from train_cifar_uncertainty import run_train_loop_mcdo
 from train_cifar_uncertainty_MCBN import run_train_loop_mcbn
 
-<<<<<<< HEAD
 from processing_utils import load_net_optimizer_from_ckpt_to_device, get_epoch_from_checkpoint
-=======
->>>>>>> parent of b3b3e49... Load and save implemented
 
 def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch CIFAR Training')
@@ -138,7 +135,6 @@ def create_model_bit(net='resnet18', dataset='cifar100', num_classes=100, device
 
 def main():
     args = parse_args()
-<<<<<<< HEAD
     log_dir = f'./checkpoint/{args.experiment_name}'
     h5_log_dir = f'{log_dir}/h5'
     os.makedirs(f'{log_dir}/models', exist_ok=True)
@@ -149,33 +145,6 @@ def main():
     gmm_log = open(log_name + '_gmm_acc.txt', 'a')
     loss_log1 = open(log_name + '_loss1.txt', 'a')
     loss_log2 = open(log_name + '_loss2.txt', 'a')
-
-    sample_entropy_log =  h5_log_dir + '/sample_entropy.h5'
-    # if not os.path.isfile(sample_entropy_log):
-    #     with tables.open_file(sample_entropy_log, mode='a') as f:
-    #         atom = tables.Float64Atom()
-    #         array_c = f.create_earray(f.root, 'data', atom, (0, 50000))
-
-    sample_pred_log = h5_log_dir + '/sample_pred.h5'
-    # if not os.path.isfile(sample_pred_log):
-    #     with tables.open_file(sample_pred_log, mode='a') as f:
-    #         atom = tables.Float64Atom()
-    #         array_c = f.create_earray(f.root, 'data', atom, (0, 50000))
-
-    subnet_loss_log =  h5_log_dir + '/losses_{}.h5'
-    # for i in range(22):
-    #     if not os.path.isfile(subnet_loss_log.format(i)):
-    #         with tables.open_file(subnet_loss_log.format(i), mode='a') as f:
-    #             atom = tables.Float64Atom()
-    #             array_c = f.create_earray(f.root, 'data', atom, (0, 50000))
-=======
-    os.makedirs('./checkpoint', exist_ok=True)
-    log_name = './checkpoint/%s_%s_%.2f_%.1f_%s' % (
-        args.experiment_name, args.dataset, args.r, args.lambda_u, args.noise_mode)
-    stats_log = open(log_name + '_stats.txt', 'w')
-    test_log = open(log_name + '_acc.txt', 'w')
-    loss_log = open(log_name + '_loss.txt', 'w')
->>>>>>> parent of b3b3e49... Load and save implemented
 
     # define warmup
     if args.dataset == 'cifar10':
@@ -207,7 +176,6 @@ def main():
         create_model = create_model_selfsup
     else:
         raise ValueError()
-<<<<<<< HEAD
 
     net1 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout)
     net2 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout)
@@ -226,15 +194,6 @@ def main():
         net1, optimizer1 = load_net_optimizer_from_ckpt_to_device(net1, args, f'{args.resume}_1.pt', args.device)
         net2, optimizer2 = load_net_optimizer_from_ckpt_to_device(net2, args, f'{args.resume}_2.pt', args.device)
         resume_epoch = get_epoch_from_checkpoint(args.resume)
-=======
-    net1 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop)
-    net2 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop)
-    cudnn.benchmark = False  # True
-
-    criterion = SemiLoss()
-    optimizer1 = optim.SGD(net1.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
-    optimizer2 = optim.SGD(net2.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
->>>>>>> parent of b3b3e49... Load and save implemented
 
     sched1 = torch.optim.lr_scheduler.StepLR(optimizer1, 150, gamma=0.1)
     sched2 = torch.optim.lr_scheduler.StepLR(optimizer2, 150, gamma=0.1)
@@ -250,21 +209,16 @@ def main():
     if args.mcdo:
         run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
                    warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_c, args.T,
-                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, sample_entropy_log, sample_pred_log, gmm_log, subnet_loss_log, f'{log_dir}/models', resume_epoch)
+                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch)
     elif args.mcbn:
         run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
                     warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_c, args.T,
-                    args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, sample_entropy_log, sample_pred_log, gmm_log, subnet_loss_log, f'{log_dir}/models', resume_epoch)
+                    args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch)
     else:
         print('Vanilla')
         run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
                    warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.T,
-<<<<<<< HEAD
                    args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log2, test_log, f'{log_dir}/models', resume_epoch)
-=======
-                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log, test_log)
-
->>>>>>> parent of b3b3e49... Load and save implemented
 
 if __name__ == '__main__':
     main()

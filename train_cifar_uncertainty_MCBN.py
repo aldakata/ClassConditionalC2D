@@ -32,7 +32,7 @@ def save_losses(input_loss, exp):
     loss_history.append(input_loss)
     pickle.dump(loss_history, open(nm, "wb"))
 
-def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, sample_entropy_log, sample_pred_log, gmm_log, subnet_loss_log, mcbn_passes = 3):
+def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, gmm_log, mcbn_passes = 3):
     model.eval()
     enable_bn(model)
     epsilon = sys.float_info.min
@@ -97,16 +97,7 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     gmm, clean_idx, noisy_idx, pred, prob = gmm_pred_class_dependant(input_loss, targets_all)
     cd_gmm = (clean_indices.cpu().numpy() == pred).sum()/50000
     print(f'VANILLA:{vanilla_gmm}\tCD:{cd_gmm}\tDIFFERENCE:{cd_gmm-vanilla_gmm}\n')
-    # if not epoch%15:
-    #     with tables.open_file(sample_entropy_log, mode='a') as f:
-    #         f.root.data.append([list(sample_entropy.cpu().numpy())])
-
-    #     with tables.open_file(sample_pred_log, mode='a') as f:
-    #         f.root.data.append([list(pred)])
-
-    #     for i in range(mcdo_passes+2):
-    #         with tables.open_file(subnet_loss_log.format(i), mode='a') as f:
-    #             f.root.data.append([list(losses[:,i].cpu().numpy())])
+    
     clean_indices = clean_indices.cpu().numpy()
     tp_tn = clean_indices == pred
     fp_fn = clean_indices != pred
@@ -163,7 +154,7 @@ def run_test(epoch, net1, net2, test_loader, device, test_log):
 
 def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, p_threshold,
                    warm_up, num_epochs, all_loss, batch_size, num_class, device, lambda_u, lambda_c, T, alpha, noise_mode,
-                   dataset, r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, sample_entropy_log, sample_pred_log, gmm_log, subnet_loss_log, ckpt_path, resume_epoch):
+                   dataset, r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, ckpt_path, resume_epoch):
     for epoch in range(resume_epoch, num_epochs + 1):
         test_loader = loader.run('test')
         eval_loader = loader.run('BN_eval_train')
@@ -189,7 +180,7 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
         else:
             print('Train Net1')
             begin_time = datetime.datetime.now()
-            prob2, all_loss[1], losses_clean2, class_variance2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r, stats_log, loss_log2, sample_entropy_log, sample_pred_log, gmm_log, subnet_loss_log)
+            prob2, all_loss[1], losses_clean2, class_variance2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r, stats_log, loss_log2, gmm_log)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
             p_thr2 = np.clip(p_threshold, prob2.min() + 1e-5, prob2.max() - 1e-5)
@@ -201,7 +192,7 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
 
             print('\nTrain Net2')
             begin_time = datetime.datetime.now()
-            prob1, all_loss[0], losses_clean1, class_variance1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r, stats_log, loss_log1, sample_entropy_log, sample_pred_log, gmm_log, subnet_loss_log)
+            prob1, all_loss[0], losses_clean1, class_variance1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r, stats_log, loss_log1, gmm_log)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
 
