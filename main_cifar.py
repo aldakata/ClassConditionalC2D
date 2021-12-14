@@ -136,9 +136,7 @@ def create_model_bit(net='resnet18', dataset='cifar100', num_classes=100, device
 def main():
     args = parse_args()
     log_dir = f'./checkpoint/{args.experiment_name}'
-    h5_log_dir = f'{log_dir}/h5'
     os.makedirs(f'{log_dir}/models', exist_ok=True)
-    os.makedirs(h5_log_dir, exist_ok=True)
     log_name = f'{log_dir}/{args.dataset}_{args.r}_{args.lambda_u}_{args.noise_mode}'
     stats_log = open(log_name + '_stats.txt', 'a')
     test_log = open(log_name + '_acc.txt', 'a')
