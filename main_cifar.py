@@ -35,7 +35,7 @@ def parse_args():
     parser.add_argument('--id', default='')
     parser.add_argument('--seed', default=123)
     parser.add_argument('--gpuid', default=0, type=int)
-    parser.add_argument('--data_path', default='/home/acatalan/Private/DivideMix/cifar-10-batches-py', type=str, help='path to dataset')
+    parser.add_argument('--data_path', default='/home/acatalan/Private/datasets/cifar-10-batches-py', type=str, help='path to dataset')
     parser.add_argument('--net', default='resnet18', type=str, help='net')
     parser.add_argument('--method', default='reg', type=str, help='method')
     parser.add_argument('--dataset', default='cifar10', type=str)
