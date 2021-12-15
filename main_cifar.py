@@ -50,8 +50,9 @@ def parse_args():
     parser.add_argument('--dropout', default=False, type=bool, help='To add dropout layer before classifier in the ResNet18.')
     parser.add_argument('--mcdo', default=False, type=bool, help='To do multiple forward passes with the dropout layer enabled at codivide time.')
     parser.add_argument('--mcbn', default=False, type=bool, help='To do multiple forward passes with the BatchNorm layer enabled at codivide time.')
-
     parser.add_argument('--lambda_c', default=0, type=float, help='weight for class variance in Lx')
+    parser.add_argument('--num_workers', default=5, type=int, help='num of dataloader workers. Colab recommended 2.')
+
 
     args = parser.parse_args()
 
@@ -163,7 +164,7 @@ def main():
         raise ValueError('Wrong dataset')
 
     loader = dataloader.cifar_dataloader(args.dataset, r=args.r, noise_mode=args.noise_mode, batch_size=args.batch_size,
-                                         num_workers=5, root_dir=args.data_path, log=stats_log,
+                                         num_workers=args.num_workers, root_dir=args.data_path, log=stats_log,
                                          noise_file='%s/%.2f_%s.json' % (args.data_path, args.r, args.noise_mode),
                                          stronger_aug=args.aug)
 
