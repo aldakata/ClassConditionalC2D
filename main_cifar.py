@@ -35,7 +35,7 @@ def parse_args():
     parser.add_argument('--id', default='')
     parser.add_argument('--seed', default=123)
     parser.add_argument('--gpuid', default=0, type=int)
-    parser.add_argument('--data_path', default='./cifar-10', type=str, help='path to dataset')
+    parser.add_argument('--data_path', default='/home/acatalan/Private/DivideMix/cifar-10-batches-py', type=str, help='path to dataset')
     parser.add_argument('--net', default='resnet18', type=str, help='net')
     parser.add_argument('--method', default='reg', type=str, help='method')
     parser.add_argument('--dataset', default='cifar10', type=str)
@@ -136,7 +136,9 @@ def create_model_bit(net='resnet18', dataset='cifar100', num_classes=100, device
 def main():
     args = parse_args()
     log_dir = f'./checkpoint/{args.experiment_name}'
+    h5_log_dir = f'{log_dir}/h5'
     os.makedirs(f'{log_dir}/models', exist_ok=True)
+    os.makedirs(h5_log_dir, exist_ok=True)
     log_name = f'{log_dir}/{args.dataset}_{args.r}_{args.lambda_u}_{args.noise_mode}'
     stats_log = open(log_name + '_stats.txt', 'a')
     test_log = open(log_name + '_acc.txt', 'a')
@@ -189,8 +191,8 @@ def main():
         optimizer2 = optim.SGD(net2.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
         resume_epoch = 0
     else:
-        net1, optimizer1 = load_net_optimizer_from_ckpt_to_device(net1, args, '/final_checkpoints/final_checkpoint_1.pt', args.device)
-        net2, optimizer2 = load_net_optimizer_from_ckpt_to_device(net2, args, '/final_checkpoints/final_checkpoint_2.pt', args.device)
+        net1, optimizer1 = load_net_optimizer_from_ckpt_to_device(net1, args, f'{args.resume}_1.pt', args.device)
+        net2, optimizer2 = load_net_optimizer_from_ckpt_to_device(net2, args, f'{args.resume}_2.pt', args.device)
         resume_epoch = get_epoch_from_checkpoint(args.resume)
 
     sched1 = torch.optim.lr_scheduler.StepLR(optimizer1, 150, gamma=0.1)
