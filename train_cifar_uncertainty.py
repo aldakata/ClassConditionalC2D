@@ -190,6 +190,7 @@ def run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
                   batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance1)  # train net2
 
         if not epoch%5:
+            ckpt_path = '/content/drive/MyDrive/TFG/checkpoints/mcdo_1'
             print(f'[ SAVING MODELS] EPOCH: {epoch} PATH: {ckpt_path}')
             save_net_optimizer_to_ckpt(net1, optimizer1, f'{ckpt_path}/1.pt')
             save_net_optimizer_to_ckpt(net2, optimizer2, f'{ckpt_path}/2.pt')
