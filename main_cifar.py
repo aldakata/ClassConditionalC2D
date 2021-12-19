@@ -192,8 +192,8 @@ def main():
         optimizer2 = optim.SGD(net2.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
         resume_epoch = 0
     else:
-        net1, optimizer1 = load_net_optimizer_from_ckpt_to_device(net1, args, f'{args.resume}_1.pt', args.device)
-        net2, optimizer2 = load_net_optimizer_from_ckpt_to_device(net2, args, f'{args.resume}_2.pt', args.device)
+        net1, optimizer1 = load_net_optimizer_from_ckpt_to_device(net1, args, f'{args.resume}1.pt', args.device)
+        net2, optimizer2 = load_net_optimizer_from_ckpt_to_device(net2, args, f'{args.resume}2.pt', args.device)
         resume_epoch = get_epoch_from_checkpoint(args.resume)
 
     sched1 = torch.optim.lr_scheduler.StepLR(optimizer1, 150, gamma=0.1)
