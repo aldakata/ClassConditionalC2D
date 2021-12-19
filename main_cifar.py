@@ -192,7 +192,7 @@ def main():
         optimizer2 = optim.SGD(net2.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
         resume_epoch = 0
     else:
-        net_path = ''.join(args.resume.split('/')[:-1])
+        net_path = '/'.join(args.resume.split('/')[:-1])
         net1, optimizer1 = load_net_optimizer_from_ckpt_to_device(net1, args, f'{net_path}1.pt', args.device)
         net2, optimizer2 = load_net_optimizer_from_ckpt_to_device(net2, args, f'{net_path}2.pt', args.device)
         resume_epoch = get_epoch_from_checkpoint(args.resume)
