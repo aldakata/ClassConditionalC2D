@@ -44,7 +44,7 @@ def train(epoch, net, net2, criterion, optimizer, labeled_trainloader, unlabeled
     net2.eval()  # fix one network and train the other
     class_variance = class_variance.to(device)
     class_variance = lambda_c * (class_variance - torch.min(class_variance))/(torch.max(class_variance)- torch.min(class_variance))
-    
+
     unlabeled_train_iter = iter(unlabeled_trainloader)
     num_iter = (len(labeled_trainloader.dataset) // batch_size) + 1
     for batch_idx, (inputs_x, inputs_x2, labels_x, _, w_x) in enumerate(labeled_trainloader):
@@ -88,7 +88,7 @@ def train(epoch, net, net2, criterion, optimizer, labeled_trainloader, unlabeled
             logits_x = logits[:batch_size * 2]
             logits_u = logits[batch_size * 2:]
 
-            uncertainty_weights_x = torch.matmul(labels_x, class_variance)+1
+            uncertainty_weights_x = torch.matmul(labels_x, class_variance)*0+1 #! THERE IS A 0 HERE THAT SHOULD BE FIXED!!!!
             uncertainty_weights_x = torch.cat([uncertainty_weights_x, uncertainty_weights_x], dim=0)
             Lx, Lu, lamb = criterion(logits_x, mixed_target[:batch_size * 2], uncertainty_weights_x, logits_u, mixed_target[batch_size * 2:],
                                      epoch + batch_idx / num_iter, warm_up, lambda_u)
