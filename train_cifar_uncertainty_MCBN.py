@@ -10,7 +10,7 @@ from train_uncertainty import warmup, train
 
 from processing_utils import save_net_optimizer_to_ckpt
 
-from uncertainty_utils import log_loss, gmm_pred, ccgmm_pred, or_ccgmm, and_ccgmm, mean_ccgmm
+from uncertainty_utils import log_loss, gmm_pred, ccgmm_pred, or_ccgmm, and_ccgmm, mean_ccgmm, benchmark
 from constants import OR_CCGMM, AND_CCGMM, CCGMM, GMM, MEAN_CCGMM
 
 import sys
@@ -105,9 +105,11 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
         gaussian_mixture = mean_ccgmm
     
 
-    print(f'DIVISION: {division}')
     prob, pred = gaussian_mixture(l, targets_all, p_threshold) # uncertainty_utils
-
+    b = benchmark(pred)
+    print(f'DIVISION: {division}\n{b}')
+    gmm_log.write(f'{epoch}: {b}')
+    gmm_log.flush()   
     return prob, all_loss, losses_clean, class_variance, pred
 
 def run_test(epoch, net1, net2, test_loader, device, test_log):

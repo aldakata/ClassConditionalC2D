@@ -64,3 +64,16 @@ def mean_ccgmm(losses, targets, thr, reshape = True):
     prob = np.mean(probs, axis=0)
     p_thr = np.clip(thr, prob.min() + 1e-5, prob.max() - 1e-5) # 0.5 = p_threshold
     return prob, prob > p_thr
+
+def benchmark(pred, clean_indices):
+    tp_tn = clean_indices == pred
+    fp_fn = clean_indices != pred
+    tp = np.logical_and(tp_tn, clean_indices)
+    tn = np.logical_and(tp_tn, ~clean_indices)
+    fp = np.logical_and(fp_fn, ~clean_indices)
+    fn = np.logical_and(fp_fn, clean_indices)
+    precision = tp.sum()/(fp.sum()+fp.sum())
+    recall = tp.sum()/(tp.sum()+fn.sum())
+    f1_score = recall*precision/(precision+recall)
+    accuracy = (clean_indices == pred).sum()/50000
+    return {'Acc':accuracy,'F1' :f1_score, '%FP': fp.sum()/50000, 'tp':tp, 'fn':tn, 'fp':fp, 'fn':fn}
