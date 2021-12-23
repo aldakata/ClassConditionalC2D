@@ -18,6 +18,8 @@ from train_cifar import run_train_loop
 from train_cifar_uncertainty import run_train_loop_mcdo
 from train_cifar_uncertainty_MCBN import run_train_loop_mcbn
 
+from constants import GMM, CCGMM, OR_CCGMM, AND_CCGMM, DIVISION_OPTIONS
+
 from processing_utils import load_net_optimizer_from_ckpt_to_device, get_epoch_from_checkpoint
 
 def parse_args():
@@ -35,7 +37,7 @@ def parse_args():
     parser.add_argument('--id', default='')
     parser.add_argument('--seed', default=123)
     parser.add_argument('--gpuid', default=0, type=int)
-    parser.add_argument('--data_path', default='/home/acatalan/Private/DivideMix/cifar-10-batches-py', type=str, help='path to dataset')
+    parser.add_argument('--data_path', default='/home/acatalan/Private/datasets/cifar-10-batches-py', type=str, help='path to dataset')
     parser.add_argument('--net', default='resnet18', type=str, help='net')
     parser.add_argument('--method', default='reg', type=str, help='method')
     parser.add_argument('--dataset', default='cifar10', type=str)
@@ -50,7 +52,7 @@ def parse_args():
     parser.add_argument('--dropout', default=False, type=bool, help='To add dropout layer before classifier in the ResNet18.')
     parser.add_argument('--mcdo', default=False, type=bool, help='To do multiple forward passes with the dropout layer enabled at codivide time.')
     parser.add_argument('--mcbn', default=False, type=bool, help='To do multiple forward passes with the BatchNorm layer enabled at codivide time.')
-
+    parser.add_argument('--division', default=GMM, type=str, help='gmm, ccgmm, or_ccgmm, and_ccgmm')
     parser.add_argument('--lambda_c', default=0, type=float, help='weight for class variance in Lx')
 
     args = parser.parse_args()
@@ -146,6 +148,10 @@ def main():
     loss_log1 = open(log_name + '_loss1.txt', 'a')
     loss_log2 = open(log_name + '_loss2.txt', 'a')
 
+    # assert division type
+    assert args.division in DIVISION_OPTIONS, f'{args.division} division method not implemented. Choose from {DIVISION_OPTIONS}'
+
+
     # define warmup
     if args.dataset == 'cifar10':
         if args.method == 'reg':
@@ -209,16 +215,16 @@ def main():
     if args.mcdo:
         run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
                    warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_c, args.T,
-                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch)
+                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch, args.division)
     elif args.mcbn:
         run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
                     warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_c, args.T,
-                    args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch)
+                    args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch, args.division)
     else:
         print('Vanilla')
         run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
                    warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.T,
-                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log2, test_log, f'{log_dir}/models', resume_epoch)
+                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log2, test_log, f'{log_dir}/models', resume_epoch, args.division)
 
 if __name__ == '__main__':
     main()

@@ -1,0 +1,3 @@
+#python main_cifar.py --dataset cifar100 --ccgmm True --data_path /home/acatalan/Private/datasets/cifar-100-python --batch_size 128 --lr 0.02 --T 0.5 --lambda_u 25 --p_threshold 0.03 --experiment-name baseline_cifar100_20 --method selfsup --r 0.2  --resume /home/acatalan/Private/C2D/checkpoint/baseline_cifar100_20/models/220 --num_epochs 360
+
+python main_cifar.py --dataset cifar100 --ccgmm False --data_path /home/acatalan/Private/datasets/cifar-100-python --batch_size 128 --lr 0.02 --T 0.5 --lambda_u 25 --p_threshold 0.03 --experiment-name vanilla_baseline_cifar100_20 --method selfsup --r 0.2  --num_epochs 360

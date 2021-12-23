@@ -5,13 +5,14 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
             "program": "main_cifar.py",
             "console": "integratedTerminal",
-            "args" : ["--batch_size", "128", "--lr", "0.02", "--T", "0.5", "--lambda_u", "25", "--experiment-name", "debug", "--method", "reg", "--r", "0.5", "--mcbn", "True", "--resume", "./checkpoint/default_1_mcbn_CDGMM/models/9"]
+            "args" : ["--batch_size", "128", "--lr", "0.02", "--T", "0.5", "--lambda_u", "25", "--experiment-name", "debug", "--method", "reg", "--r", "0.5", "--mcbn", "True", "--resume", "/home/acatalan/Private/C2D/checkpoint/ccgmm_30/models/100"]
             //--batch_size 128 --lr 0.002 --T 0.7 --lambda_u 25 --experiment-name dropblock_baseline --method reg --r 0.5 --mcdo True --drop --resume /home/acatalan/Private/C2D/checkpoint/dropblock_baseline/models/90
             //--batch_size 128 --lr 0.002 --T 0.7 --lambda_u 25 --experiment-name dropout_baseline --method reg --r 0.5 --mcdo True --dropout True
             //python Train_cifar.py  --batch_size 128 --lambda_u 25 --r 0.5 --num_epochs 10 --experiment_name 0.5_warmup --data_path ./cifar-10-batches-py/

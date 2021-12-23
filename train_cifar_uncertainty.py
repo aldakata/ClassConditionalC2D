@@ -149,7 +149,7 @@ def run_test(epoch, net1, net2, test_loader, device, test_log):
 
 def run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, p_threshold,
                    warm_up, num_epochs, all_loss, batch_size, num_class, device, lambda_u, lambda_c, T, alpha, noise_mode,
-                   dataset, r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, ckpt_path, resume_epoch):
+                   dataset, r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, ckpt_path, resume_epoch, ccgmm):
     for epoch in range(resume_epoch, num_epochs + 1):
         test_loader = loader.run('test')
         eval_loader = loader.run('eval_train')
@@ -175,7 +175,7 @@ def run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
         else:
             print('Train Net1')
             begin_time = datetime.datetime.now()
-            prob2, all_loss[1], losses_clean2, class_variance2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r, stats_log, loss_log2, gmm_log)
+            prob2, all_loss[1], losses_clean2, class_variance2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r, stats_log, loss_log2, gmm_log, ccgmm)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
             p_thr2 = np.clip(p_threshold, prob2.min() + 1e-5, prob2.max() - 1e-5)
@@ -187,7 +187,7 @@ def run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
 
             print('\nTrain Net2')
             begin_time = datetime.datetime.now()
-            prob1, all_loss[0], losses_clean1, class_variance1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r, stats_log, loss_log1, gmm_log)
+            prob1, all_loss[0], losses_clean1, class_variance1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r, stats_log, loss_log1, gmm_log, ccgmm)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
 

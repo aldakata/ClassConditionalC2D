@@ -8,7 +8,7 @@ from sklearn.mixture import GaussianMixture
 from train import warmup, train
 
 from processing_utils import save_net_optimizer_to_ckpt
-from uncertainty_utils import log_loss, gmm_pred, gmm_pred_class_dependant
+from uncertainty_utils import log_loss, gmm_pred, ccgmm_pred
 
 
 def save_losses(input_loss, exp):
@@ -22,7 +22,7 @@ def save_losses(input_loss, exp):
     pickle.dump(loss_history, open(nm, "wb"))
 
 
-def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log):
+def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, ccgmm, p_threshold):
     model.eval()
     losses = torch.zeros(50000)
     losses_clean = torch.zeros(50000)
@@ -53,20 +53,26 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     # exp = '_std_tpc_oracle'
     # save_losses(input_loss, exp)
 
-    gmm = GaussianMixture(n_components=2, max_iter=200, tol=1e-2, reg_covar=5e-4)
-    gmm.fit(input_loss)
+    if ccgmm:
+        gmm, clean_idx, noisy_idx, pred, prob = ccgmm_pred(input_loss, targets_all, p_threshold)
 
-    clean_idx, noisy_idx = gmm.means_.argmin(), gmm.means_.argmax()
-    stats_log.write('Epoch {} (net {}): GMM results: {} with weight {} with covariance: {}\t {} with weight {} with covariance: {}\n'
-                    ''.format(epoch, net, gmm.means_[clean_idx], gmm.weights_[clean_idx], gmm.covariances_[clean_idx], gmm.means_[noisy_idx], gmm.weights_[noisy_idx], gmm.covariances_[noisy_idx]))
-    stats_log.flush()
+    else:
+        gmm = GaussianMixture(n_components=2, max_iter=200, tol=1e-2, reg_covar=5e-4)
+        gmm.fit(input_loss)
 
-    prob = gmm.predict_proba(input_loss)
-    prob = prob[:, clean_idx]
+        clean_idx, noisy_idx = gmm.means_.argmin(), gmm.means_.argmax()
+        stats_log.write('Epoch {} (net {}): GMM results: {} with weight {} with covariance: {}\t {} with weight {} with covariance: {}\n'
+                        ''.format(epoch, net, gmm.means_[clean_idx], gmm.weights_[clean_idx], gmm.covariances_[clean_idx], gmm.means_[noisy_idx], gmm.weights_[noisy_idx], gmm.covariances_[noisy_idx]))
+        stats_log.flush()
 
-    gmm, clean_idx, noisy_idx, pred, prob = gmm_pred_class_dependant(input_loss, targets_all)
+        prob = gmm.predict_proba(input_loss)
+        prob = prob[:, clean_idx]
 
-    return prob, all_loss, losses_clean
+        p_thr = np.clip(p_threshold, prob.min() + 1e-5, prob.max() - 1e-5)
+        pred = prob > p_thr
+
+
+    return prob, all_loss, losses_clean, pred
 
 
 def run_test(epoch, net1, net2, test_loader, device, test_log):
@@ -92,34 +98,33 @@ def run_test(epoch, net1, net2, test_loader, device, test_log):
 
 def run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, p_threshold,
                    warm_up, num_epochs, all_loss, batch_size, num_class, device, lambda_u, T, alpha, noise_mode,
-                   dataset, r, conf_penalty, stats_log, loss_log, test_log, ckpt_path, resume_epoch):
+                   dataset, r, conf_penalty, stats_log, loss_log, test_log, ckpt_path, resume_epoch, ccgmm):
     for epoch in range(resume_epoch, num_epochs + 1):
         test_loader = loader.run('test')
+        eval_loader = loader.run('eval_train')
 
         if epoch < warm_up:
+            warmup_trainloader = loader.run('warmup')
             print('\nWarmup Net2')
             warmup(epoch, net2, optimizer2, warmup_trainloader, CEloss, conf_penalty, device, dataset, r, num_epochs,
                    noise_mode)
 
-            prob1, all_loss[0], losses_clean1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r,
-                                                           stats_log)
-            prob2, all_loss[1], losses_clean2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r,
-                                                           stats_log)
+            # prob1, all_loss[0], losses_clean1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r,
+            #                                                stats_log)
+            # prob2, all_loss[1], losses_clean2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r,
+            #                                                stats_log)
 
-            p_thr2 = np.clip(p_threshold, prob2.min() + 1e-5, prob2.max() - 1e-5)
-            pred2 = prob2 > p_thr2
+            # p_thr2 = np.clip(p_threshold, prob2.min() + 1e-5, prob2.max() - 1e-5)
+            # pred2 = prob2 > p_thr2
 
-            loss_log.write('{},{},{},{},{}\n'.format(epoch, losses_clean2[pred2].mean(), losses_clean2[pred2].std(),
-                                                     losses_clean2[~pred2].mean(), losses_clean2[~pred2].std()))
-            loss_log.flush()
-            loader.run('train', pred2, prob2)  # count metrics
+            # loss_log.write('{},{},{},{},{}\n'.format(epoch, losses_clean2[pred2].mean(), losses_clean2[pred2].std(),
+            #                                          losses_clean2[~pred2].mean(), losses_clean2[~pred2].std()))
+            # loss_log.flush()
+            # loader.run('train', pred2, prob2)  # count metrics
         else:
             print('Train Net1')
-            prob2, all_loss[1], losses_clean2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r,
-                                                           stats_log)
-
-            p_thr2 = np.clip(p_threshold, prob2.min() + 1e-5, prob2.max() - 1e-5)
-            pred2 = prob2 > p_thr2
+            prob2, all_loss[1], losses_clean2, pred2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r,
+                                                           stats_log, ccgmm, p_threshold)
 
             loss_log.write('{},{},{},{},{}\n'.format(epoch, losses_clean2[pred2].mean(), losses_clean2[pred2].std(),
                                                      losses_clean2[~pred2].mean(), losses_clean2[~pred2].std()))
@@ -130,11 +135,8 @@ def run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion
                   batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs)  # train net1
 
             print('\nTrain Net2')
-            prob1, all_loss[0], losses_clean1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r,
-                                                           stats_log)
-
-            p_thr1 = np.clip(p_threshold, prob1.min() + 1e-5, prob1.max() - 1e-5)
-            pred1 = prob1 > p_thr1
+            prob1, all_loss[0], losses_clean1, pred1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r,
+                                                           stats_log, ccgmm, p_threshold)
 
             labeled_trainloader, unlabeled_trainloader = loader.run('train', pred1, prob1)  # co-divide
             train(epoch, net2, net1, criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u,
