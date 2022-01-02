@@ -88,7 +88,7 @@ def train(epoch, net, net2, criterion, optimizer, labeled_trainloader, unlabeled
             logits_x = logits[:batch_size * 2]
             logits_u = logits[batch_size * 2:]
 
-            uncertainty_weights_x = torch.matmul(labels_x, class_variance)*0+1 #! THERE IS A 0 HERE THAT SHOULD BE FIXED!!!!
+            uncertainty_weights_x = torch.matmul(labels_x, class_variance)+1
             uncertainty_weights_x = torch.cat([uncertainty_weights_x, uncertainty_weights_x], dim=0)
             Lx, Lu, lamb = criterion(logits_x, mixed_target[:batch_size * 2], uncertainty_weights_x, logits_u, mixed_target[batch_size * 2:],
                                      epoch + batch_idx / num_iter, warm_up, lambda_u)

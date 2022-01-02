@@ -55,6 +55,7 @@ def parse_args():
     parser.add_argument('--division', default=GMM, type=str, help='gmm, ccgmm, or_ccgmm, and_ccgmm')
     parser.add_argument('--lambda_c', default=0, type=float, help='weight for class variance in Lx')
     parser.add_argument('--num_workers', default=5, type=int, help='num of dataloader workers. Colab recommended 2.')
+    parser.add_argument('--checkpoint_path', default='./', type=str, help='Checkpoint parent path.')
 
 
     args = parser.parse_args()
@@ -139,7 +140,7 @@ def create_model_bit(net='resnet18', dataset='cifar100', num_classes=100, device
 
 def main():
     args = parse_args()
-    log_dir = f'./checkpoint/{args.experiment_name}'
+    log_dir = f'{args.checkpoint_path}checkpoint/{args.experiment_name}'
     h5_log_dir = f'{log_dir}/h5'
     os.makedirs(f'{log_dir}/models', exist_ok=True)
     os.makedirs(h5_log_dir, exist_ok=True)
