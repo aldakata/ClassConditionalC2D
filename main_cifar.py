@@ -56,6 +56,7 @@ def parse_args():
     parser.add_argument('--lambda_c', default=0, type=float, help='weight for class variance in Lx')
     parser.add_argument('--num_workers', default=5, type=int, help='num of dataloader workers. Colab recommended 2.')
     parser.add_argument('--checkpoint_path', default='./', type=str, help='Checkpoint parent path.')
+    parser.add_argument('--pretrained_path', default='./', type=str, help='Checkpoint parent path.')
 
 
     args = parser.parse_args()
@@ -101,7 +102,7 @@ class NegEntropy(object):
         return torch.mean(torch.sum(probs.log() * probs, dim=1))
 
 
-def create_model_reg(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0, usedropout=False):
+def create_model_reg(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0, usedropout=False, path='./'):
     if net == 'resnet18':
         model = ResNet18(num_classes=num_classes, drop=drop, usedropout=usedropout)
         model = model.to(device)
@@ -112,8 +113,8 @@ def create_model_reg(net='resnet18', dataset='cifar100', num_classes=100, device
         return model
 
 
-def create_model_selfsup(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0, usedropout=False):
-    chekpoint = torch.load('pretrained/ckpt_{}_{}.pth'.format(dataset, net))
+def create_model_selfsup(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0, usedropout=False, path='./'):
+    chekpoint = torch.load('{}pretrained/ckpt_{}_{}.pth'.format(path,dataset, net))
     sd = {}
     for ke in chekpoint['model']:
         nk = ke.replace('module.', '')
@@ -124,7 +125,7 @@ def create_model_selfsup(net='resnet18', dataset='cifar100', num_classes=100, de
     return model
 
 
-def create_model_bit(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0, mcdo=False):
+def create_model_bit(net='resnet18', dataset='cifar100', num_classes=100, device='cuda:0', drop=0, mcdo=False, path='./'):
     if net == 'resnet50':
         model = bit_models.KNOWN_MODELS['BiT-S-R50x1'](head_size=num_classes, zero_head=True)
         model.load_from(np.load("pretrained/BiT-S-R50x1.npz"))
@@ -186,8 +187,8 @@ def main():
     else:
         raise ValueError()
 
-    net1 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout)
-    net2 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout)
+    net1 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout, path=args.pretrained_path)
+    net2 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout, path=args.pretrained_path)
     cudnn.benchmark = False  # True
 
     if args.mcdo or args.mcbn:
