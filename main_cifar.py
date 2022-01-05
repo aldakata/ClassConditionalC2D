@@ -155,7 +155,6 @@ def main():
     # assert division type
     assert args.division in DIVISION_OPTIONS, f'{args.division} division method not implemented. Choose from {DIVISION_OPTIONS}'
 
-
     # define warmup
     if args.dataset == 'cifar10':
         if args.method == 'reg':
