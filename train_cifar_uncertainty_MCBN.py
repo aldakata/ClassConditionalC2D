@@ -67,7 +67,7 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
 
     # Per class uncertainty.
     sample_class_variance = torch.gather(sample_variance_over_mcdo, 1, targets_all.unsqueeze(-1).long()).squeeze()
-    class_variance = torch.tensor([torch.mean(sample_class_variance[targets_all==c]).item() for c in range(10)]) # where 10 is num_classes
+    class_variance = torch.tensor([torch.mean(sample_class_variance[targets_all==c]).item() for c in range(num_class)]) # where 10 is num_classes
 
     # True Clean / Noisy
     clean_indices = targets_all_clean == targets_all
