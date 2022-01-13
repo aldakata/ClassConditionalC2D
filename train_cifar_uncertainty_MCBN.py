@@ -34,13 +34,13 @@ def save_losses(input_loss, exp):
     loss_history.append(input_loss)
     pickle.dump(loss_history, open(nm, "wb"))
 
-def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, gmm_log, p_threshold, division=OR_CCGMM, mcbn_passes = 5):
+def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, gmm_log, p_threshold, num_class, division=OR_CCGMM, mcbn_passes = 5):
     model.eval()
     enable_bn(model)
     epsilon = sys.float_info.min
     losses = torch.zeros(size=(50000, mcbn_passes))
     losses_clean = torch.zeros(size=(50000, mcbn_passes))
-    softmaxs = torch.zeros(size=(50000, 10, mcbn_passes), device=device)
+    softmaxs = torch.zeros(size=(50000, num_class, mcbn_passes), device=device)
     targets_all = torch.zeros(50000, device=device)
     targets_all_clean = torch.zeros(50000, device=device)
 
@@ -151,7 +151,7 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
         else:
             print('Train Net1')
             begin_time = datetime.datetime.now()
-            prob2, all_loss[1], losses_clean2, class_variance2, pred2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r, stats_log, loss_log2, gmm_log, p_threshold, division)
+            prob2, all_loss[1], losses_clean2, class_variance2, pred2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r, stats_log, loss_log2, gmm_log, p_threshold, num_class, division)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
 
@@ -161,7 +161,7 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
 
             print('\nTrain Net2')
             begin_time = datetime.datetime.now()
-            prob1, all_loss[0], losses_clean1, class_variance1, pred1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r, stats_log, loss_log1, gmm_log, p_threshold, division)
+            prob1, all_loss[0], losses_clean1, class_variance1, pred1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r, stats_log, loss_log1, gmm_log, p_threshold, num_class, division)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
 
