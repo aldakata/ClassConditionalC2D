@@ -180,8 +180,8 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
         if not epoch%5 or epoch ==9:
             print(f'[ SAVING MODELS] EPOCH: {epoch} PATH: {ckpt_path}')
 
-            save_net_optimizer_to_ckpt(net1, optimizer1, f'{ckpt_path}/{epoch}_1.pt')
-            save_net_optimizer_to_ckpt(net2, optimizer2, f'{ckpt_path}/{epoch}_2.pt')
+            save_net_optimizer_to_ckpt(net1, optimizer1, f'{ckpt_path}/_1.pt')
+            save_net_optimizer_to_ckpt(net2, optimizer2, f'{ckpt_path}/_2.pt')
 
         run_test(epoch, net1, net2, test_loader, device, test_log)
 
