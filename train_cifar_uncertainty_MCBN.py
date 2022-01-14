@@ -172,7 +172,8 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
             prob1, all_loss[0], losses_clean1, class_variance1, pred1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r, stats_log, loss_log1, gmm_log, p_threshold, num_class, division)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
-
+            loss_log1.write(f'{epoch}: {class_variance1}')
+            loss_log1.flush()
             labeled_trainloader, unlabeled_trainloader = loader.run('train', pred1, prob1)  # co-divide
             train(epoch, net2, net1, criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_c,
                   batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance1)  # train net2

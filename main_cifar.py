@@ -147,7 +147,7 @@ def main():
     stats_log = open(log_name + '_stats.txt', 'a')
     test_log = open(log_name + '_acc.txt', 'a')
     gmm_log = open(log_name + '_gmm_acc.txt', 'a')
-    loss_log1 = open(log_name + '_loss1.txt', 'a')
+    loss_log1 = open(log_name + '_class_variance.txt', 'a')
     loss_log2 = open(log_name + '_loss2.txt', 'a')
 
     # assert division type
