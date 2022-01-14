@@ -181,14 +181,12 @@ def main():
     else:
         raise ValueError()
 
-    net1 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout)
-    net2 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout)
+    net1 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop)
+    net2 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop)
     cudnn.benchmark = False  # True
 
-    if args.mcdo or args.mcbn:
-        criterion = SemiLoss_uncertainty()
-    else:
-        criterion = SemiLoss()
+    uncertainty_criterion = SemiLoss_uncertainty()
+    criterion = SemiLoss()
 
     if args.resume is None:
         optimizer1 = optim.SGD(net1.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
@@ -227,7 +225,7 @@ def main():
                    warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_c, args.T,
                    args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch, args.division)
     elif args.mcbn:
-        run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
+        run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, uncertainty_criterion, CEloss, CE, loader, args.p_threshold,
                     warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_c, args.T,
                     args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch, args.division)
     else:

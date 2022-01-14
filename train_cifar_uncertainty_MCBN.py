@@ -34,7 +34,7 @@ def save_losses(input_loss, exp):
     loss_history.append(input_loss)
     pickle.dump(loss_history, open(nm, "wb"))
 
-def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, gmm_log, p_threshold, num_class, division=OR_CCGMM, mcbn_passes = 5):
+def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, gmm_log, p_threshold, num_class, division=OR_CCGMM, mcbn_passes = 2):
     model.eval()
     enable_bn(model)
     epsilon = sys.float_info.min
@@ -59,6 +59,8 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
                     losses[index[b], i] = loss[b]
                     losses_clean[index[b], i] = clean_loss[b]
                     softmaxs[index[b], :, i] = softmax[b] # shape (n_samples, n_classes, n_mcdo_passes)
+
+            losses[:,i] = (losses[:,i] - losses[:,i].min())/(losses[:,i].max()-losses[:,i].min())
 
     # Per sample uncertainty.
     sample_mean_over_mcdo = torch.mean(softmaxs, dim=2) # shape (n_samples, n_classes)
@@ -140,7 +142,7 @@ def run_test(epoch, net1, net2, test_loader, device, test_log):
     test_log.write('Epoch:%d   Accuracy:%.2f\n' % (epoch, acc))
     test_log.flush()
 
-def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, p_threshold,
+def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, uncertainty_criterion, CEloss, CE, loader, p_threshold,
                    warm_up, num_epochs, all_loss, batch_size, num_class, device, lambda_u, lambda_c, T, alpha, noise_mode,
                    dataset, r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, ckpt_path, resume_epoch, division=OR_CCGMM):
     for epoch in range(resume_epoch, num_epochs + 1):

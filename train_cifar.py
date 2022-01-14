@@ -52,25 +52,23 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
 
 
     if division == GMM:
-        l = input_loss
         gaussian_mixture = gmm_pred
     elif division == CCGMM:
-        l = input_loss
         gaussian_mixture = ccgmm_pred
-    elif division == OR_CCGMM:
-        l = losses
-        gaussian_mixture = or_ccgmm
-    elif division == AND_CCGMM:
-        l = input_loss
-        gaussian_mixture = and_ccgmm
-    elif division == MEAN_CCGMM:
-        l = input_loss
-        gaussian_mixture = mean_ccgmm
+    else:
+        print('BAD CO-DIVIDE POLICY. EXIT')
+        exit(0)
     
 
     print(f'DIVISION: {division}')
-    prob, pred = gaussian_mixture(l, targets_all, p_threshold) # uncertainty_utils
+    gmm = GaussianMixture(n_components=2, max_iter=200, tol=1e-2, reg_covar=5e-4)
+    gmm.fit(input_loss)
 
+    clean_idx, noisy_idx = gmm.means_.argmin(), gmm.means_.argmax()
+    prob = gmm.predict_proba(input_loss)
+    prob = prob[:, clean_idx]
+    p_thr = np.clip(p_threshold, prob.min() + 1e-5, prob.max() - 1e-5)
+    pred = prob > p_thr
 
     return prob, all_loss, losses_clean, pred
 
@@ -105,6 +103,9 @@ def run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion
 
         if epoch < warm_up:
             warmup_trainloader = loader.run('warmup')
+            print('\nWarmup Net1')
+            warmup(epoch, net1, optimizer1, warmup_trainloader, CEloss, conf_penalty, device, dataset, r, num_epochs,
+                   noise_mode)
             print('\nWarmup Net2')
             warmup(epoch, net2, optimizer2, warmup_trainloader, CEloss, conf_penalty, device, dataset, r, num_epochs,
                    noise_mode)
@@ -142,7 +143,7 @@ def run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion
             train(epoch, net2, net1, criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u,
                   batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs)  # train net2
 
-        if not epoch%5:
+        if not epoch%5 or epoch==9:
             save_net_optimizer_to_ckpt(net1, optimizer1, f'{ckpt_path}/{epoch}_1.pt')
             save_net_optimizer_to_ckpt(net2, optimizer2, f'{ckpt_path}/{epoch}_2.pt')
 
