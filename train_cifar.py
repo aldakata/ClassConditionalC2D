@@ -105,6 +105,10 @@ def run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion
 
         if epoch < warm_up:
             warmup_trainloader = loader.run('warmup')
+            print('\nWarmup Net1')
+            warmup(epoch, net1, optimizer1, warmup_trainloader, CEloss, conf_penalty, device, dataset, r, num_epochs,
+                   noise_mode)
+
             print('\nWarmup Net2')
             warmup(epoch, net2, optimizer2, warmup_trainloader, CEloss, conf_penalty, device, dataset, r, num_epochs,
                    noise_mode)
