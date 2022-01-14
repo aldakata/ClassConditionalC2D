@@ -58,6 +58,7 @@ def parse_args():
     parser.add_argument('--num_workers', default=5, type=int, help='num of dataloader workers. Colab recommended 2.')
     parser.add_argument('--checkpoint_path', default='./', type=str, help='Checkpoint parent path.')
     parser.add_argument('--pretrained_path', default='./', type=str, help='Checkpoint parent path.')
+    parser.add_argument('--predict', default=False, type=bool, help='')
 
 
     args = parser.parse_args()
