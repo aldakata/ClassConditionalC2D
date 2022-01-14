@@ -98,10 +98,10 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
         l = losses
         gaussian_mixture = or_ccgmm
     elif division == AND_CCGMM:
-        l = input_loss
+        l = losses
         gaussian_mixture = and_ccgmm
     elif division == MEAN_CCGMM:
-        l = input_loss
+        l = losses
         gaussian_mixture = mean_ccgmm
     
 
