@@ -57,16 +57,7 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     elif division == CCGMM:
         l = input_loss
         gaussian_mixture = ccgmm_pred
-    elif division == OR_CCGMM:
-        l = losses
-        gaussian_mixture = or_ccgmm
-    elif division == AND_CCGMM:
-        l = input_loss
-        gaussian_mixture = and_ccgmm
-    elif division == MEAN_CCGMM:
-        l = input_loss
-        gaussian_mixture = mean_ccgmm
-    
+
 
     print(f'DIVISION: {division}')
     prob, pred = gaussian_mixture(l, targets_all, p_threshold) # uncertainty_utils
