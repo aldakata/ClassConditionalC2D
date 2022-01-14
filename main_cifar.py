@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import argparse
-import os
+import os, sys
 import tables
 import random
 
@@ -21,6 +21,7 @@ from train_cifar_uncertainty_MCBN import run_train_loop_mcbn
 from constants import GMM, CCGMM, OR_CCGMM, AND_CCGMM, DIVISION_OPTIONS
 
 from processing_utils import load_net_optimizer_from_ckpt_to_device, get_epoch_from_checkpoint
+from predict_utils import pred_test, pred_train
 
 def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch CIFAR Training')
@@ -72,11 +73,9 @@ def parse_args():
     torch.manual_seed(args.seed)
     return args
 
-
 def linear_rampup(current, warm_up, lambda_u, rampup_length=16):
     current = np.clip((current - warm_up) / rampup_length, 0.0, 1.0)
     return lambda_u * float(current)
-
 
 class SemiLoss(object):
     def __call__(self, outputs_x, targets_x, outputs_u, targets_u, epoch, warm_up, lambda_u):
@@ -142,9 +141,7 @@ def create_model_bit(net='resnet18', dataset='cifar100', num_classes=100, device
 def main():
     args = parse_args()
     log_dir = f'{args.checkpoint_path}checkpoint/{args.experiment_name}'
-    h5_log_dir = f'{log_dir}/h5'
     os.makedirs(f'{log_dir}/models', exist_ok=True)
-    os.makedirs(h5_log_dir, exist_ok=True)
     log_name = f'{log_dir}/{args.dataset}_{args.r}_{args.lambda_u}_{args.noise_mode}'
     stats_log = open(log_name + '_stats.txt', 'a')
     test_log = open(log_name + '_acc.txt', 'a')
@@ -215,6 +212,18 @@ def main():
     else:
         conf_penalty = None
     all_loss = [[], []]  # save the history of losses from two networks
+
+
+    if args.predict:
+        pred_trainloader = loader.run('eval_train')
+        pred_testloader = loader.run('test')
+
+        pred_test(pred_testloader, net1, net2, '{log_dir}/predicted_test.json')
+        pred_train(pred_trainloader, net1, net2, '{log_dir}/predicted_train')
+        print('Labels predicted!')
+        sys.exit()
+
+
     print(f'MCDO? : {args.mcdo}\tMCBN? : {args.mcbn}')
     if args.mcdo:
         run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,

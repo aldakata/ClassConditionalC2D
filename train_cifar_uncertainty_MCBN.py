@@ -11,7 +11,7 @@ from train_uncertainty import warmup, train
 from processing_utils import save_net_optimizer_to_ckpt
 
 from uncertainty_utils import log_loss, gmm_pred, ccgmm_pred, or_ccgmm, and_ccgmm, mean_ccgmm, benchmark
-from constants import OR_CCGMM, AND_CCGMM, CCGMM, GMM, MEAN_CCGMM
+from constants import OR_CCGMM, AND_CCGMM, CCGMM, GMM, MEAN_CCGMM, MEAN_GMM, AND_GMM, OR_GMM
 
 import sys
 
@@ -103,7 +103,15 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     elif division == MEAN_CCGMM:
         l = losses
         gaussian_mixture = mean_ccgmm
-    
+    elif division == OR_GMM:
+        l = losses
+        gaussian_mixture = or_ccgmm
+    elif division == AND_GMM:
+        l = losses
+        gaussian_mixture = and_ccgmm
+    elif division == MEAN_GMM:
+        l = losses
+        gaussian_mixture = mean_ccgmm
 
     prob, pred = gaussian_mixture(l, targets_all, p_threshold) # uncertainty_utils
     b = benchmark(pred, clean_indices.cpu().numpy())
@@ -171,9 +179,10 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
 
         if not epoch%5 or epoch ==9:
             print(f'[ SAVING MODELS] EPOCH: {epoch} PATH: {ckpt_path}')
-            save_net_optimizer_to_ckpt(net1, optimizer1, f'{ckpt_path}/1.pt')
-            save_net_optimizer_to_ckpt(net2, optimizer2, f'{ckpt_path}/2.pt')
-    
+
+            save_net_optimizer_to_ckpt(net1, optimizer1, f'{ckpt_path}/{epoch}_1.pt')
+            save_net_optimizer_to_ckpt(net2, optimizer2, f'{ckpt_path}/{epoch}_2.pt')
+
         run_test(epoch, net1, net2, test_loader, device, test_log)
 
         sched1.step()
