@@ -57,7 +57,7 @@ def and_ccgmm(losses, targets, thr, reshape = True):
     probs, preds = np.asarray(list(zip(*np.asarray([ccgmm_pred(losses[:, i], targets, thr, reshape=reshape) for i in range(losses.size(-1))]))))
     pred = np.all(preds, axis=0)
     prob = np.mean(probs, axis=0)
-    return prob, pred
+    return probs[0,:], pred
 
 def mean_ccgmm(losses, targets, thr, reshape = True):
     probs, _ = np.asarray(list(zip(*np.asarray([ccgmm_pred(losses[:, i], targets, thr, reshape=reshape) for i in range(losses.size(-1))]))))
