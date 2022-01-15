@@ -166,7 +166,7 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
             print(f'CoDivide elapsed time: {end_time-begin_time}')
 
             labeled_trainloader, unlabeled_trainloader = loader.run('train', pred2, prob2)  # co-divide
-            train(epoch, net1, net2, criterion, optimizer1, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_c,
+            train(epoch, net1, net2, uncertainty_criterion, optimizer1, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_c,
                   batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance2)  # train net1
 
             print('\nTrain Net2')
@@ -176,7 +176,7 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
             print(f'CoDivide elapsed time: {end_time-begin_time}')
 
             labeled_trainloader, unlabeled_trainloader = loader.run('train', pred1, prob1)  # co-divide
-            train(epoch, net2, net1, criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_c,
+            train(epoch, net2, net1, uncertainty_criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_c,
                   batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance1)  # train net2
 
         if not epoch%5 or epoch ==9:
