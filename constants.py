@@ -1,4 +1,5 @@
 GMM = 'gmm'
+trick_GMM = 'trick_gmm'
 CCGMM = 'ccgmm'
 OR_CCGMM = 'or_ccgmm'
 AND_CCGMM = 'and_ccgmm'
