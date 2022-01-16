@@ -25,9 +25,9 @@ def gmm_pred(loss, targets, thr, reshape = False):
 def norm(arr):
     return (arr - arr.min())/(arr.max()-arr.min())
 
-def trick_probability(entropy, preds):
+def trick_probability(entropy, pred):
     entropy = norm(entropy).cpu().numpy()
-    return norm(np.abs(preds-entropy))
+    return norm(np.abs(pred-entropy))
 
 def ccgmm_pred(loss, targets, thr, reshape = False):
     if reshape:

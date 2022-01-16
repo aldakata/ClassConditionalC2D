@@ -10,8 +10,8 @@ from train import warmup, train
 
 from processing_utils import save_net_optimizer_to_ckpt
 
-from uncertainty_utils import log_loss, gmm_pred, ccgmm_pred, or_ccgmm, and_ccgmm, mean_ccgmm, or_gmm, and_gmm, mean_gmm, benchmark
-from constants import OR_CCGMM, AND_CCGMM, CCGMM, GMM, MEAN_CCGMM, MEAN_GMM, AND_GMM, OR_GMM
+from uncertainty_utils import log_loss, gmm_pred, ccgmm_pred, or_ccgmm, and_ccgmm, mean_ccgmm, or_gmm, and_gmm, mean_gmm, trick_probability, benchmark
+from constants import OR_CCGMM, AND_CCGMM, CCGMM, GMM, MEAN_CCGMM, MEAN_GMM, AND_GMM, OR_GMM, trick_GMM
 
 import sys
 
@@ -113,8 +113,15 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     elif division == MEAN_GMM:
         l = losses
         gaussian_mixture = mean_gmm
+    elif division == trick_GMM:
+        l=input_loss
+        gaussian_mixture = gmm_pred
+
 
     prob, pred = gaussian_mixture(l, targets_all, p_threshold) # uncertainty_utils
+    if division == trick_GMM:
+        prob = trick_probability(sample_entropy, pred)
+
     b = benchmark(pred, clean_indices.cpu().numpy())
     print(f'DIVISION: {division}\n{b}')
     gmm_log.write(f'{epoch}: {b}')
