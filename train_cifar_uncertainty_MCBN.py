@@ -34,7 +34,7 @@ def save_losses(input_loss, exp):
     loss_history.append(input_loss)
     pickle.dump(loss_history, open(nm, "wb"))
 
-def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, gmm_log, p_threshold, num_class, division=OR_CCGMM, mcbn_passes = 2):
+def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, gmm_log, p_threshold, num_class, division=OR_CCGMM, mcbn_passes = 5):
     model.eval()
     enable_bn(model)
     epsilon = sys.float_info.min
