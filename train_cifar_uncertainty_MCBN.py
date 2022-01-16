@@ -2,11 +2,10 @@ import os
 import pickle
 
 import numpy as np
-from pandas.core import base
 import torch
 from sklearn.mixture import GaussianMixture
 
-from train_uncertainty import warmup, train
+from train import warmup, train
 
 from processing_utils import save_net_optimizer_to_ckpt
 
@@ -34,9 +33,8 @@ def save_losses(input_loss, exp):
     loss_history.append(input_loss)
     pickle.dump(loss_history, open(nm, "wb"))
 
-def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, gmm_log, p_threshold, num_class, division=OR_CCGMM, mcbn_passes = 5):
+def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, gmm_log, p_threshold, num_class, division=OR_CCGMM, mcbn_passes = 3):
     model.eval()
-    enable_bn(model)
     epsilon = sys.float_info.min
     losses = torch.zeros(size=(50000, mcbn_passes))
     losses_clean = torch.zeros(size=(50000, mcbn_passes))
@@ -46,6 +44,8 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
 
     with torch.no_grad():
         for i in range(mcbn_passes):
+            if i == 1:#first iteration with test BN.
+                enable_bn(model)
             for batch_idx, (inputs, _, targets, index, targets_clean) in enumerate(eval_loader):
                 inputs, targets, targets_clean = inputs.to(device), targets.to(device), targets_clean.to(device)
                 for j,b in enumerate(range(index.size(0))):
@@ -76,7 +76,6 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
 
     # Vanilla Loss
     losses_chosen = losses[:, 0] # Only choose the pass without dropout
-    losses_chosen = (losses_chosen - losses_chosen.min()) / (losses_chosen.max() - losses_chosen.min())
 
     all_loss.append(losses_chosen)
     history = torch.stack(all_loss)
@@ -147,6 +146,8 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
                    dataset, r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, ckpt_path, resume_epoch, division=OR_CCGMM):
     for epoch in range(resume_epoch, num_epochs + 1):
         test_loader = loader.run('test')
+        # eval_loader = loader.run('eval_train')
+
         eval_loader = loader.run('BN_eval_train')
 
         if epoch < warm_up:
@@ -161,23 +162,25 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
         else:
             print('Train Net1')
             begin_time = datetime.datetime.now()
-            prob2, all_loss[1], losses_clean2, class_variance2, pred2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r, stats_log, loss_log2, gmm_log, p_threshold, num_class, division)
+            prob2, all_loss[1], losses_clean2, class_variance2, pred2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, 
+                    device, r, stats_log, loss_log2, gmm_log, p_threshold, num_class, division)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
 
             labeled_trainloader, unlabeled_trainloader = loader.run('train', pred2, prob2)  # co-divide
-            train(epoch, net1, net2, uncertainty_criterion, optimizer1, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_c,
-                  batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance2)  # train net1
+            train(epoch, net1, net2, criterion, optimizer1, labeled_trainloader, unlabeled_trainloader, lambda_u, #lambda_c,
+                    batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs)#, class_variance2)  # train net1
 
             print('\nTrain Net2')
             begin_time = datetime.datetime.now()
-            prob1, all_loss[0], losses_clean1, class_variance1, pred1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r, stats_log, loss_log1, gmm_log, p_threshold, num_class, division)
+            prob1, all_loss[0], losses_clean1, class_variance1, pred1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, 
+                    device, r, stats_log, loss_log1, gmm_log, p_threshold, num_class, division)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
 
             labeled_trainloader, unlabeled_trainloader = loader.run('train', pred1, prob1)  # co-divide
-            train(epoch, net2, net1, uncertainty_criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_c,
-                  batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance1)  # train net2
+            train(epoch, net2, net1, criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u,# lambda_c,
+                    batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs)#, class_variance1)  # train net2
 
         if not epoch%5 or epoch ==9:
             print(f'[ SAVING MODELS] EPOCH: {epoch} PATH: {ckpt_path}')
