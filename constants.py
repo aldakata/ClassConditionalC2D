@@ -1,5 +1,5 @@
 GMM = 'gmm'
-trick_GMM = 'trick_gmm'
+TRICK_GMM = 'trick_gmm'
 CCGMM = 'ccgmm'
 OR_CCGMM = 'or_ccgmm'
 AND_CCGMM = 'and_ccgmm'
@@ -7,4 +7,4 @@ MEAN_CCGMM = 'mean_ccgmm'
 OR_GMM = 'or_gmm'
 AND_GMM = 'and_gmm'
 MEAN_GMM = 'mean_gmm'
-DIVISION_OPTIONS = [GMM, CCGMM, OR_CCGMM, AND_CCGMM, MEAN_CCGMM, OR_GMM, AND_GMM, MEAN_GMM, trick_GMM]
+DIVISION_OPTIONS = [GMM, CCGMM, OR_CCGMM, AND_CCGMM, MEAN_CCGMM, OR_GMM, AND_GMM, MEAN_GMM, TRICK_GMM]
