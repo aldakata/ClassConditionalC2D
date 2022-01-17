@@ -102,4 +102,4 @@ def benchmark(pred, clean_indices):
     recall = tp.sum()/(tp.sum()+fn.sum())
     f1_score = recall*precision/(precision+recall)
     accuracy = (clean_indices == pred).sum()/50000
-    return {'Acc':accuracy,'F1' :f1_score, '%FP': fp.sum()/50000, 'tp':tp, 'fn':tn, 'fp':fp, 'fn':fn}
+    return {'Acc':accuracy,'F1' :f1_score, '%FP': fp.sum()/50000, 'tp':tp.sum()/50000, 'fn':tn.sum()/50000, 'fp':fp.sum()/50000, 'fn':fn.sum()/50000}

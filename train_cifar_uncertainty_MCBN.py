@@ -116,8 +116,11 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
 
     prob, pred = gaussian_mixture(l, targets_all, p_threshold) # uncertainty_utils
     b = benchmark(pred, clean_indices.cpu().numpy())
+    prob_gmm,pred_gmm=gmm_pred(input_loss, targets_all, p_threshold)
+    b_gmm = benchmark(pred_gmm, clean_indices.cpu().numpy())
     print(f'DIVISION: {division}\n{b}')
-    gmm_log.write(f'{epoch}: {b}')
+    print(f'DIVISION GMM: {b_gmm}\n')
+    gmm_log.write(f'{epoch}: {b}\n')
     gmm_log.flush()   
     return prob, all_loss, losses_clean, class_variance, pred
 
