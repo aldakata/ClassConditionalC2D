@@ -188,10 +188,7 @@ def main():
     net2 = create_model(net=args.net, dataset=args.dataset, num_classes=num_classes, device=args.device, drop=args.drop, usedropout=args.dropout, path=args.pretrained_path)
     cudnn.benchmark = False  # True
 
-    if args.mcdo or args.mcbn:
-        criterion = SemiLoss_uncertainty()
-    else:
-        criterion = SemiLoss()
+    criterion = SemiLoss()
 
     if args.resume is None:
         optimizer1 = optim.SGD(net1.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
