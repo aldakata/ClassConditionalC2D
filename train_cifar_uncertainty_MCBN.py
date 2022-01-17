@@ -119,7 +119,7 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
 
 
     prob, pred = gaussian_mixture(l, targets_all, p_threshold) # uncertainty_utils
-    if division == trick_GMM:
+    if division == TRICK_GMM:
         prob = trick_probability(sample_entropy, pred)
 
     b = benchmark(pred, clean_indices.cpu().numpy())
