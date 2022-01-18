@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from sklearn.mixture import GaussianMixture
 
-from train import warmup, train
+from train_uncertainty import warmup, train
 
 from processing_utils import save_net_optimizer_to_ckpt
 
