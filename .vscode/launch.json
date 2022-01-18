@@ -12,7 +12,7 @@
             "request": "launch",
             "program": "main_cifar.py",
             "console": "integratedTerminal",
-            "args" : ["--batch_size", "128", "--lr", "0.02", "--T", "0.5", "--lambda_c","1","--lambda_u", "25", "--experiment-name", "debug/dbg", "--method", "reg", "--r", "0.5", "--mcbn", "True", "--resume", "/home/acatalan/Private/C2D/checkpoint/debug/cifar10_50_50_gmm_debug/models/9", "--division", "gmm"]
+            "args" : ["--batch_size", "128", "--lr", "0.02", "--T", "0.5", "--lambda_x","1","--lambda_u", "25", "--experiment-name", "debug/dbg", "--method", "reg", "--r", "0.5", "--mcbn", "True", "--resume", "/home/acatalan/Private/C2D/checkpoint/debug/cifar10_50_50_gmm_debug/models/9", "--division", "gmm"]
             //--batch_size 128 --lr 0.002 --T 0.7 --lambda_u 25 --experiment-name dropblock_baseline --method reg --r 0.5 --mcdo True --drop --resume /home/acatalan/Private/C2D/checkpoint/dropblock_baseline/models/90
             //--batch_size 128 --lr 0.002 --T 0.7 --lambda_u 25 --experiment-name dropout_baseline --method reg --r 0.5 --mcdo True --dropout True
             //python Train_cifar.py  --batch_size 128 --lambda_u 25 --r 0.5 --num_epochs 10 --experiment_name 0.5_warmup --data_path ./cifar-10-batches-py/

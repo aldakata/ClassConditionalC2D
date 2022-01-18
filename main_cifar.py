@@ -93,7 +93,7 @@ class SemiLoss_uncertainty(object):
         probs_u = torch.softmax(outputs_u, dim=1)
 
         Lx = -torch.mean(uncertainty_weights_x * torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1))
-        Lu = torch.mean(uncertainty_weights_u * (probs_u - targets_u) ** 2)
+        Lu = torch.mean(uncertainty_weights_u * torch.mean((probs_u - targets_u) ** 2, dim=1))
 
         return Lx, Lu, linear_rampup(epoch, warm_up, lambda_u)
 
