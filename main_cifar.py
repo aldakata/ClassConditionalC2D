@@ -54,7 +54,8 @@ def parse_args():
     parser.add_argument('--mcdo', default=False, type=bool, help='To do multiple forward passes with the dropout layer enabled at codivide time.')
     parser.add_argument('--mcbn', default=False, type=bool, help='To do multiple forward passes with the BatchNorm layer enabled at codivide time.')
     parser.add_argument('--division', default=GMM, type=str, help='gmm, ccgmm, or_ccgmm, and_ccgmm')
-    parser.add_argument('--lambda_c', default=0, type=float, help='weight for class variance in Lx')
+    parser.add_argument('--lambda_x', default=0, type=float, help='weight for class variance in Lx')
+    parser.add_argument('--lambda_unlabeled', default=0, type=float, help='weight for class variance in Lu')
     parser.add_argument('--num_workers', default=5, type=int, help='num of dataloader workers. Colab recommended 2.')
     parser.add_argument('--checkpoint_path', default='./', type=str, help='Checkpoint parent path.')
     parser.add_argument('--pretrained_path', default='./', type=str, help='Checkpoint parent path.')
@@ -88,11 +89,11 @@ class SemiLoss(object):
         return Lx, Lu, linear_rampup(epoch, warm_up, lambda_u)
 
 class SemiLoss_uncertainty(object):
-    def __call__(self, outputs_x, targets_x, uncertainty_weights_x, outputs_u, targets_u, epoch, warm_up, lambda_u):
+    def __call__(self, outputs_x, targets_x, uncertainty_weights_x, outputs_u, targets_u, uncertainty_weights_u, epoch, warm_up, lambda_u):
         probs_u = torch.softmax(outputs_u, dim=1)
 
-        Lx = -torch.mean(uncertainty_weights_x *torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1))
-        Lu = torch.mean((probs_u - targets_u) ** 2)
+        Lx = -torch.mean(uncertainty_weights_x * torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1))
+        Lu = torch.mean(uncertainty_weights_u * (probs_u - targets_u) ** 2)
 
         return Lx, Lu, linear_rampup(epoch, warm_up, lambda_u)
 
@@ -147,7 +148,7 @@ def main():
     stats_log = open(log_name + '_stats.txt', 'a')
     test_log = open(log_name + '_acc.txt', 'a')
     gmm_log = open(log_name + '_gmm_acc.txt', 'a')
-    loss_log1 = open(log_name + '_class_variance.txt', 'a')
+    cv_log = open(log_name + '_class_variance.txt', 'a')
     loss_log2 = open(log_name + '_loss2.txt', 'a')
 
     # assert division type
@@ -189,6 +190,7 @@ def main():
     cudnn.benchmark = False  # True
 
     criterion = SemiLoss()
+    uncertainty_criterion = SemiLoss_uncertainty()
 
     if args.resume is None:
         optimizer1 = optim.SGD(net1.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
@@ -224,12 +226,12 @@ def main():
     print(f'MCDO? : {args.mcdo}\tMCBN? : {args.mcbn}')
     if args.mcdo:
         run_train_loop_mcdo(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
-                   warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_c, args.T,
-                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch, args.division)
+                   warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_x, args.T,
+                   args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, cv_log, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch, args.division)
     elif args.mcbn:
-        run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,
-                    warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_c, args.T,
-                    args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch, args.division)
+        run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, uncertainty_criterion, CEloss, CE, loader, args.p_threshold,
+                    warm_up, args.num_epochs, all_loss, args.batch_size, num_classes, args.device, args.lambda_u, args.lambda_x, args.lambda_unlabeled, args.T,
+                    args.alpha, args.noise_mode, args.dataset, args.r, conf_penalty, stats_log, cv_log, loss_log2, test_log, gmm_log, f'{log_dir}/models', resume_epoch, args.division)
     else:
         print('Vanilla')
         run_train_loop(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, args.p_threshold,

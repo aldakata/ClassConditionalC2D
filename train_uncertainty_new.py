@@ -1,7 +1,9 @@
 import sys
+
 import numpy as np
 import torch
 import torch.nn.functional as F
+
 
 def co_guess(net, net2, inputs_x, inputs_u, inputs_x2, inputs_u2, w_x, labels_x, T, smooth_clean):
     # label co-guessing of unlabeled samples
@@ -36,11 +38,10 @@ def co_guess(net, net2, inputs_x, inputs_u, inputs_x2, inputs_u2, w_x, labels_x,
 
 
 # Training
-def train(epoch, net, net2, criterion, optimizer, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_x, lambda_unlabeled, batch_size,
+def train(epoch, net, net2, criterion, optimizer, labeled_trainloader, unlabeled_trainloader, lambda_u, batch_size,
           num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance, smooth_clean=True, loss_log = './checkpoint/loss_log.txt'):
     net.train()
     net2.eval()  # fix one network and train the other
-    class_variance = class_variance.to(device)
 
     unlabeled_train_iter = iter(unlabeled_trainloader)
     num_iter = (len(labeled_trainloader.dataset) // batch_size) + 1
@@ -85,14 +86,8 @@ def train(epoch, net, net2, criterion, optimizer, labeled_trainloader, unlabeled
             logits_x = logits[:batch_size * 2]
             logits_u = logits[batch_size * 2:]
 
-            uncertainty_weights_x = (torch.matmul(labels_x, class_variance * lambda_x)+1)
-            uncertainty_weights_x = torch.cat([uncertainty_weights_x, uncertainty_weights_x], dim=0)
-            uncertainty_weights_u = (torch.matmul(targets_u, class_variance * lambda_unlabeled)+1)
-            uncertainty_weights_u = torch.cat([uncertainty_weights_u, uncertainty_weights_u], dim=0)
-
-            Lx, Lu, lamb = criterion(logits_x, mixed_target[:batch_size * 2], uncertainty_weights_x, logits_u, mixed_target[batch_size * 2:],
-                                     uncertainty_weights_u, epoch + batch_idx / num_iter, warm_up, lambda_u)
-        
+            Lx, Lu, lamb = criterion(logits_x, mixed_target[:batch_size * 2], logits_u, mixed_target[batch_size * 2:],
+                                     epoch + batch_idx / num_iter, warm_up, lambda_u)
         else:
             mixed_input = l * input_a[:batch_size * 2] + (1 - l) * input_b[:batch_size * 2]
             mixed_target = l * target_a[:batch_size * 2] + (1 - l) * target_b[:batch_size * 2]

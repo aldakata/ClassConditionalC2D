@@ -7,4 +7,5 @@ MEAN_CCGMM = 'mean_ccgmm'
 OR_GMM = 'or_gmm'
 AND_GMM = 'and_gmm'
 MEAN_GMM = 'mean_gmm'
-DIVISION_OPTIONS = [GMM, CCGMM, OR_CCGMM, AND_CCGMM, MEAN_CCGMM, OR_GMM, AND_GMM, MEAN_GMM, TRICK_GMM]
+CIFAR10_CLASSES = ['airplane','automobile','bird','cat','deer','dog','frog','horse','ship','truck']
+DIVISION_OPTIONS = [GMM, CCGMM, OR_CCGMM, AND_CCGMM, MEAN_CCGMM, OR_GMM, AND_GMM, MEAN_GMM]

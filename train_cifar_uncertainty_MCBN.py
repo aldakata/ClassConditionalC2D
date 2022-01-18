@@ -1,8 +1,8 @@
 import os
 import pickle
+from random import sample
 
 import numpy as np
-from pandas.core import base
 import torch
 from sklearn.mixture import GaussianMixture
 
@@ -11,7 +11,7 @@ from train import warmup, train
 from processing_utils import save_net_optimizer_to_ckpt
 
 from uncertainty_utils import log_loss, gmm_pred, ccgmm_pred, or_ccgmm, and_ccgmm, mean_ccgmm, or_gmm, and_gmm, mean_gmm, trick_probability, benchmark
-from constants import OR_CCGMM, AND_CCGMM, CCGMM, GMM, MEAN_CCGMM, MEAN_GMM, AND_GMM, OR_GMM, TRICK_GMM
+from constants import OR_CCGMM, AND_CCGMM, CCGMM, GMM, MEAN_CCGMM, MEAN_GMM, AND_GMM, OR_GMM, CIFAR10_CLASSES
 
 import sys
 
@@ -34,7 +34,7 @@ def save_losses(input_loss, exp):
     loss_history.append(input_loss)
     pickle.dump(loss_history, open(nm, "wb"))
 
-def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, loss_log, gmm_log, p_threshold, num_class, division=OR_CCGMM, mcbn_passes = 5):
+def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_log, cv_log, gmm_log, p_threshold, num_class, division=OR_CCGMM, mcbn_passes = 2):
     model.eval()
     epsilon = sys.float_info.min
     losses = torch.zeros(size=(50000, mcbn_passes))
@@ -45,7 +45,7 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
 
     with torch.no_grad():
         for i in range(mcbn_passes):
-            if i ==1:
+            if i == 1:#first iteration with test BN.
                 enable_bn(model)
             for batch_idx, (inputs, _, targets, index, targets_clean) in enumerate(eval_loader):
                 inputs, targets, targets_clean = inputs.to(device), targets.to(device), targets_clean.to(device)
@@ -60,7 +60,9 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
                     losses[index[b], i] = loss[b]
                     losses_clean[index[b], i] = clean_loss[b]
                     softmaxs[index[b], :, i] = softmax[b] # shape (n_samples, n_classes, n_mcdo_passes)
-            losses[:, i] = (losses[:,i]- losses[:,i].min())/(losses[:,i].max()-losses[:,i].min())
+
+            losses[:,i] = (losses[:,i] - losses[:,i].min())/(losses[:,i].max()-losses[:,i].min())
+
     # Per sample uncertainty.
     sample_mean_over_mcdo = torch.mean(softmaxs, dim=2) # shape (n_samples, n_classes)
     sample_variance_over_mcdo = torch.var(softmaxs, dim=2) # shape (n_samples, n_classes)
@@ -69,13 +71,12 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     # Per class uncertainty.
     sample_class_variance = torch.gather(sample_variance_over_mcdo, 1, targets_all.unsqueeze(-1).long()).squeeze()
     class_variance = torch.tensor([torch.mean(sample_class_variance[targets_all==c]).item() for c in range(num_class)]) # where 10 is num_classes
-
+    class_variance = (class_variance - torch.min(class_variance))/(torch.max(class_variance)- torch.min(class_variance))
     # True Clean / Noisy
     clean_indices = targets_all_clean == targets_all
 
     # Vanilla Loss
     losses_chosen = losses[:, 0] # Only choose the pass without dropout
-    losses_chosen = (losses_chosen - losses_chosen.min()) / (losses_chosen.max() - losses_chosen.min())
 
     all_loss.append(losses_chosen)
     history = torch.stack(all_loss)
@@ -113,19 +114,23 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     elif division == MEAN_GMM:
         l = losses
         gaussian_mixture = mean_gmm
-    elif division == TRICK_GMM:
-        l=input_loss
-        gaussian_mixture = gmm_pred
 
 
     prob, pred = gaussian_mixture(l, targets_all, p_threshold) # uncertainty_utils
-    if division == TRICK_GMM:
-        prob = trick_probability(sample_entropy, pred)
 
     b = benchmark(pred, clean_indices.cpu().numpy())
-    print(f'DIVISION: {division}\n{b}')
-    gmm_log.write(f'{epoch}: {b}')
+    prob_gmm,pred_gmm=gmm_pred(input_loss, targets_all, p_threshold)
+    b_gmm = benchmark(pred_gmm, clean_indices.cpu().numpy())
+    print(f'DIVISION {division}: {b}')
+    print(f'DIVISION gmm: {b_gmm}\n')
+    print(f'Class variance: {list(zip(CIFAR10_CLASSES, class_variance.cpu().numpy()))}\n')
+
+
+    gmm_log.write(f'{epoch}: {b}\n')
     gmm_log.flush()   
+    cv_log.write(f'{epoch}: {class_variance.cpu().numpy()}')
+    cv_log.flush()
+
     return prob, all_loss, losses_clean, class_variance, pred
 
 def run_test(epoch, net1, net2, test_loader, device, test_log):
@@ -148,9 +153,9 @@ def run_test(epoch, net1, net2, test_loader, device, test_log):
     test_log.write('Epoch:%d   Accuracy:%.2f\n' % (epoch, acc))
     test_log.flush()
 
-def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, CEloss, CE, loader, p_threshold,
-                   warm_up, num_epochs, all_loss, batch_size, num_class, device, lambda_u, lambda_c, T, alpha, noise_mode,
-                   dataset, r, conf_penalty, stats_log, loss_log1, loss_log2, test_log, gmm_log, ckpt_path, resume_epoch, division=OR_CCGMM):
+def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, criterion, uncertainty_criterion, CEloss, CE, loader, p_threshold,
+                   warm_up, num_epochs, all_loss, batch_size, num_class, device, lambda_u, lambda_x, lambda_unlabeled, T, alpha, noise_mode,
+                   dataset, r, conf_penalty, stats_log, cv_log, loss_log2, test_log, gmm_log, ckpt_path, resume_epoch, division=OR_CCGMM):
     for epoch in range(resume_epoch, num_epochs + 1):
         test_loader = loader.run('test')
         eval_loader = loader.run('BN_eval_train')
@@ -163,28 +168,27 @@ def run_train_loop_mcbn(net1, optimizer1, sched1, net2, optimizer2, sched2, crit
             print('\nWarmup Net2')
             warmup(epoch, net2, optimizer2, warmup_trainloader, CEloss, conf_penalty, device, dataset, r, num_epochs,
                    noise_mode)
-
         else:
             print('Train Net1')
             begin_time = datetime.datetime.now()
-            prob2, all_loss[1], losses_clean2, class_variance2, pred2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, device, r, stats_log, loss_log2, gmm_log, p_threshold, num_class, division)
+            prob2, all_loss[1], losses_clean2, class_variance2, pred2 = eval_train(net2, eval_loader, CE, all_loss[1], epoch, 2, 
+                    device, r, stats_log, loss_log2, gmm_log, p_threshold, num_class, division)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
 
             labeled_trainloader, unlabeled_trainloader = loader.run('train', pred2, prob2)  # co-divide
-            train(epoch, net1, net2, criterion, optimizer1, labeled_trainloader, unlabeled_trainloader, lambda_u, #lambda_c,
-                  batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs)#, class_variance2)  # train net1
-
+            train(epoch, net1, net2, uncertainty_criterion, optimizer1, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_x, 
+                    lambda_unlabeled, batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance2)  # train net1
+    
             print('\nTrain Net2')
             begin_time = datetime.datetime.now()
-            prob1, all_loss[0], losses_clean1, class_variance1, pred1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, device, r, stats_log, loss_log1, gmm_log, p_threshold, num_class, division)
+            prob1, all_loss[0], losses_clean1, class_variance1, pred1 = eval_train(net1, eval_loader, CE, all_loss[0], epoch, 1, 
+                    device, r, stats_log, cv_log, gmm_log, p_threshold, num_class, division)
             end_time = datetime.datetime.now()
             print(f'CoDivide elapsed time: {end_time-begin_time}')
-            loss_log1.write(f'{epoch}: {class_variance1}')
-            loss_log1.flush()
             labeled_trainloader, unlabeled_trainloader = loader.run('train', pred1, prob1)  # co-divide
-            train(epoch, net2, net1, criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u,# lambda_c,
-                  batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs)#, class_variance1)  # train net2
+            train(epoch, net2, net1, uncertainty_criterion, optimizer2, labeled_trainloader, unlabeled_trainloader, lambda_u, lambda_x,
+                    lambda_unlabeled, batch_size, num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance1)  # train net2
 
         if not epoch%5 or epoch ==9:
             print(f'[ SAVING MODELS] EPOCH: {epoch} PATH: {ckpt_path}')
