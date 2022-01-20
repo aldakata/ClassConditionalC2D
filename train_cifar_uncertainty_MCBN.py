@@ -71,7 +71,6 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
     # Per class uncertainty.
     sample_class_variance = torch.gather(sample_variance_over_mcdo, 1, targets_all.unsqueeze(-1).long()).squeeze()
     class_variance = torch.tensor([torch.mean(sample_class_variance[targets_all==c]).item() for c in range(num_class)]) # where 10 is num_classes
-    class_variance = (class_variance - torch.min(class_variance))/(torch.max(class_variance)- torch.min(class_variance))
     # True Clean / Noisy
     clean_indices = targets_all_clean == targets_all
 
@@ -128,9 +127,10 @@ def eval_train(model, eval_loader, CE, all_loss, epoch, net, device, r, stats_lo
 
     gmm_log.write(f'{epoch}: {b}\n')
     gmm_log.flush()   
-    cv_log.write(f'{epoch}: {class_variance.cpu().numpy()}')
+    cv_log.write(f'{epoch}: {str(class_variance.cpu().numpy())}\n')
     cv_log.flush()
 
+    class_variance = (class_variance - torch.min(class_variance))/(torch.max(class_variance)- torch.min(class_variance))
     return prob, all_loss, losses_clean, class_variance, pred
 
 def run_test(epoch, net1, net2, test_loader, device, test_log):
