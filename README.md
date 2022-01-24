@@ -1,25 +1,4 @@
-# Contrast to Divide: self-supervised pre-training for learning with noisy labels
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/contrast-to-divide-self-supervised-pre-1/image-classification-on-mini-webvision-1-0)](https://paperswithcode.com/sota/image-classification-on-mini-webvision-1-0?p=contrast-to-divide-self-supervised-pre-1) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/contrast-to-divide-self-supervised-pre-1/image-classification-on-clothing1m)](https://paperswithcode.com/sota/image-classification-on-clothing1m?p=contrast-to-divide-self-supervised-pre-1)
 
-This is an official implementation of 
-"Contrast to Divide: self-supervised pre-training for learning with noisy labels".
-The code is based on [DivideMix](https://github.com/LiJunnan1992/DivideMix) implementation.
-
-## Results
-Following tables summarize main results of the paper:
-
-CIFAR-10:
-![CIFAR-10 results](./img/cifar10.png)
-
-CIFAR-100:
-![CIFAR-100 results](./img/cifar100.png)
-
-Clothing1M:
-![Clothing1M results](./img/clothing.png)
-
-mini-WebVision:
-![mini-WebVision](./img/webvision.png)
-## Running the code
 
 First you need to install dependencies by running `pip install -r requirements.txt`.
 
