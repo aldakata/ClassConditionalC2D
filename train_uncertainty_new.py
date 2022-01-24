@@ -39,7 +39,7 @@ def co_guess(net, net2, inputs_x, inputs_u, inputs_x2, inputs_u2, w_x, labels_x,
 
 # Training
 def train(epoch, net, net2, criterion, optimizer, labeled_trainloader, unlabeled_trainloader, lambda_u, batch_size,
-          num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, smooth_clean=True, loss_log = './checkpoint/loss_log.txt'):
+          num_class, device, T, alpha, warm_up, dataset, r, noise_mode, num_epochs, class_variance, smooth_clean=True, loss_log = './checkpoint/loss_log.txt'):
     net.train()
     net2.eval()  # fix one network and train the other
 
