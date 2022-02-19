@@ -1,4 +1,6 @@
 
+This is an implementation of Class-Conditional DivideMix and of Uncertainty Aware DivideMix for my final degree project.
+
 
 First you need to install dependencies by running `pip install -r requirements.txt`.
 
